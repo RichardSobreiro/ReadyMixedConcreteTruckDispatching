@@ -1,0 +1,1 @@
+int c = ...; // Number of clients
