@@ -2,9 +2,9 @@
 	<version>1.0</version>
 	<configs>
 		<config default="true" name="Configuration1" category="opl">
-			<ref name="ReadyMixedConcreteTruckDispatching.mod" type="model">
+			<ref name="VRPTW.mod" type="model">
 			</ref>
-			<ref name="ReadyMixedConcreteTruckDispatching.dat" type="data">
+			<ref name="VRPTW.dat" type="data">
 			</ref>
 		</config>
 	</configs>
