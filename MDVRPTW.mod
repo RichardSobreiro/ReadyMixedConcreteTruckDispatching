@@ -1,8 +1,9 @@
+int nD = ...; // Number of depots
 int K = ...; // Number of vehicles
 float Q = ...; // Vehicles capacity
 
 int nV = ...; // Number of customers
-int nVp = nV+2; // Number of customers plus base at 0 and n+1
+int nVp = nV + (2*nD); // Number of customers plus base at 0 and n+1
 
 range V = 1..nV;
 //range A = 1..nV;
