@@ -1,3 +1,6 @@
+// FROM: An exact algorithm for a vehicle routing problem with time windows and multiple use of vehicles
+// AUTORS: Nabila Azi, Michel Gendreau, Jean-Yves Potvin 
+
 int K = ...; // Number of vehicles
 float Q = ...; // Vehicles capacity
 
@@ -44,15 +47,6 @@ minimize sum(r in R, i in Ap, j in Ap)(d[i][j] * x[r][i][j]) -
 //maximize sum(r in R, i in Vp)(g[i] * y[r][i]);
 	
 subject to {
-	/*VehicleCannotGoSameNode:
-	forall(r in R, i in Vp, j in Vp: i == j) {
-		x[4][i][j] == 0;
-	}*/
-	
-	/*CustomerMustBeServedBySomeRoute:
-	forall(i in Vp: i != 1 && i != nVp) {
-		sum(r in R)(y[r][i]) == 1;	
-	}*/
 	
 	EveryClientMustBelongOneRoute:
 	forall(i in Vp, r in R: i != 1 && i != nVp) {
