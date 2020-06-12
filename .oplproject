@@ -7,10 +7,22 @@
 			<ref name="1VRPTW.dat" type="data">
 			</ref>
 		</config>
-		<config default="true" name="VRPTWClassical" category="opl">
+		<config default="false" name="VRPTWClassical" category="opl">
 			<ref name="VRPTWClassical.dat" type="data">
 			</ref>
 			<ref name="VRPTWClassical.mod" type="model">
+			</ref>
+		</config>
+		<config default="false" name="VRPTWMaxProfit" category="opl">
+			<ref name="VRPTWMaxProfit.mod" type="model">
+			</ref>
+			<ref name="VRPTWMaxProfit.dat" type="data">
+			</ref>
+		</config>
+		<config default="true" name="VRPTWMinTrucks" category="opl">
+			<ref name="VRPTWMinTrucks.dat" type="data">
+			</ref>
+			<ref name="VRPTWMinTrucks.mod" type="model">
 			</ref>
 		</config>
 	</configs>
