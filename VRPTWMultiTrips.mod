@@ -1,5 +1,5 @@
-// FROM: Column Generation - VEHICLE ROUTING PROBLEM WITH TIME WINDOWS
-// AUTORS: Brian Kallehauge. Jesper Larsen, Oli B.G. Madsen, Marius M. Solomon
+// FROM: -
+// AUTORS: Richard Sobreiro
 
 int nV = ...;
 int nC = ...;

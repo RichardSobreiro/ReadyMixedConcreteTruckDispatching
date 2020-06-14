@@ -25,12 +25,18 @@
 			<ref name="VRPTWMinTrucks.mod" type="model">
 			</ref>
 		</config>
-		<config default="true" name="VRPTWMultiTrips" category="opl">
+		<config default="false" name="VRPTWMultiTrips" category="opl">
 			<ref name="VRPTWMultiTrips.mod" type="model">
 			</ref>
 			<ref name="VRPTWMultiTrips.dat" type="data">
 			</ref>
 			<ref name="VRPTWMultiTrips.ops" type="setting">
+			</ref>
+		</config>
+		<config default="true" name="MDVRPTWMultiTrips" category="opl">
+			<ref name="MDVRPTWMultiTrips.dat" type="data">
+			</ref>
+			<ref name="MDVRPTWMultiTrips.mod" type="model">
 			</ref>
 		</config>
 	</configs>
