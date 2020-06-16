@@ -2,9 +2,9 @@
 	<version>1.0</version>
 	<configs>
 		<config default="false" name="Configuration1" category="opl">
-			<ref name="1VRPTW.mod" type="model">
+			<ref name="VRPTW.mod" type="model">
 			</ref>
-			<ref name="1VRPTW.dat" type="data">
+			<ref name="VRPTW.dat" type="data">
 			</ref>
 		</config>
 		<config default="false" name="VRPTWClassical" category="opl">
@@ -33,10 +33,16 @@
 			<ref name="VRPTWMultiTrips.ops" type="setting">
 			</ref>
 		</config>
-		<config default="true" name="MDVRPTWMultiTrips" category="opl">
+		<config default="false" name="MDVRPTWMultiTrips" category="opl">
 			<ref name="MDVRPTWMultiTrips.dat" type="data">
 			</ref>
 			<ref name="MDVRPTWMultiTrips.mod" type="model">
+			</ref>
+		</config>
+		<config default="true" name="RMCTDP" category="opl">
+			<ref name="RMCTDP.dat" type="data">
+			</ref>
+			<ref name="RMCTDP.mod" type="model">
 			</ref>
 		</config>
 	</configs>
