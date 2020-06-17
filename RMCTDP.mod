@@ -32,9 +32,9 @@ dvar boolean x[N][N][V][R];
 dvar boolean y[V];
 dvar float s[N][V][R];
 
-dvar float ld[V][R][N];
-dvar float lft[V][R][N];
-dvar boolean z[V][V][N];
+dvar float ld[V][R];
+dvar float lft[V][R];
+dvar boolean z[V][R][V][R];
 
 // 3.1
 maximize sum(k in V)(
@@ -46,25 +46,23 @@ maximize sum(k in V)(
 
 subject to {
 	forall(r in R, k in V, i in N, j in N: (i != j)) {
+		if(i <= nD) {
+			lft[k][r] >= s[j][k][r] - t[i][j] - M*(1 - x[i][j][k][r]);			
+		}
 		s[i][k][r] + t[i][j] - M*(1 - x[i][j][k][r]) <= s[j][k][r];
 	}
 
-	/*forall(r in R, s in R, k in V, l in V, i in N: s != r && i <= nD && k != l){
-		lft[l][s][i] >= lft[k][r][i] + ld[k][r][i] - MjobShop * (1 - z[r][s][i]);
-		lft[k][r][i] >= lft[l][s][i] + ld[l][s][i] + MjobShop * z[r][s][i];  
-	}*/
-	
-	forall(k in V, r in R, i in N: i <= nD){
-		lft[k][r][i] >= ld[k][r][i];	
+	forall(r in R, s in R, k in V, l in V, i in N: i <= nD && k != l){
+		lft[l][s] >= lft[k][r] + ld[l][s] - MjobShop * (1 - z[k][r][l][s]);
+		lft[k][r] >= lft[l][s] + ld[k][r] - MjobShop * z[k][r][l][s];  
 	}
 	
-	forall(k in V, r in R, i in N){
-		if(i <= nD){
-			ld[k][r][i] == sum(j in N)(x[i][j][k][r] * d[j]);		
-		}	
-		else{
-			ld[k][r][i] == 0;	
-		}
+	forall(k in V, r in R, i in N: i <= nD){
+		lft[k][r] >= ld[k][r];	
+	}
+	
+	forall(k in V, r in R){
+		ld[k][r] == sum(i in N, j in N)(x[i][j][k][r] * d[j]);
 	}
 
 	forall(r in R, k in V, i in N, j in N: i == j){
@@ -111,14 +109,6 @@ subject to {
 		sum(g in N)(x[nN - j + 1][g][k][r+1]) >= sum(h in N)(x[h][j][k][r]);
 	}
 	
-	forall(k in V, r in R, i in N: i > nD){
-		lft[k][r][i] == 0;
-	}
-
-	forall(k in V, l in V, i in N: i > nD || k == l){
-		z[k][l][i] == 0;	
-	}
-	
 }
 
 tuple Node {
@@ -128,7 +118,6 @@ tuple Node {
 	int CustomerId;
 	int OriginId;
 	int IsUsed;
-	
 };
 
 sorted {Node} Nodes = {};
@@ -145,7 +134,8 @@ execute
 				{
 					if((x[i][j][k][r] == 1) && (i <= nD)) 
 					{	
-						writeln("lft[",k,"][",r,"][",i,"] = ", lft[k][r][i]);
+						writeln("lft[",k,"][",r,"] = ", lft[k][r]);
+						writeln("ld[",k,"][",r,"] = ", ld[k][r]);
 					}			
 				}			
 			}		
@@ -199,6 +189,8 @@ execute
 			writeln("- From (", node.OriginId, ") To (", node.CustomerId, ")");	
 		}
 		writeln("  ServiceTime: ", s[node.CustomerId][node.VehicleId][node.RouteId]);
+		writeln("lft[",k,"][",r,"] = ", lft[k][r]);
+		writeln("ld[",k,"][",r,"] = ", ld[k][r]);
 		writeln("  Demand: ", d[node.CustomerId]);
 		writeln("  Profit: ", p[node.CustomerId]);
 		writeln("  Cost: ", c[node.OriginId][node.CustomerId]);
