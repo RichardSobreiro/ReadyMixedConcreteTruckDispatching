@@ -57,6 +57,10 @@ subject to {
 		lft[k][r] >= lft[l][s] + ld[k][r] - MjobShop * z[k][r][l][s];  
 	}
 	
+	forall(r in R, s in R, k in V, l in V: k == l){
+		z[k][r][l][s] == 0;
+	}
+	
 	forall(k in V, r in R, i in N: i <= nD){
 		lft[k][r] >= ld[k][r];	
 	}
@@ -64,7 +68,7 @@ subject to {
 	forall(k in V, r in R){
 		ld[k][r] == sum(i in N, j in N)(x[i][j][k][r] * d[j]);
 	}
-
+//-----
 	forall(r in R, k in V, i in N, j in N: i == j){
 		x[i][j][k][r] == 0;
 	}
@@ -172,6 +176,7 @@ execute
 			else{
 				writeln("VEHICLE ", currentVehicle, " IS NOT USED");
 			}
+			currentRoute = -1;
 		}
 		if(currentRoute != node.RouteId)
 		{
