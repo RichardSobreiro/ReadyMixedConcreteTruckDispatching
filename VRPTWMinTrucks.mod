@@ -1,11 +1,11 @@
 // FROM: -
 // AUTORS: Richard Sobreiro
 
-int nV = ...;
-int nC = ...;
-int nN = nC + 2;
+int nCTM = ...;
+int nCT = ...;
+int nN = nCT + 2;
 
-range V = 1..nV;
+range V = 1..nCTM;
 range N = 1..nN;
 
 float c[N][N] = ...;

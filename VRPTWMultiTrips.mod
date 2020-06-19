@@ -1,13 +1,13 @@
 // FROM: -
 // AUTORS: Richard Sobreiro
 
-int nV = ...;
-int nC = ...;
-int nN = nC + 2;
+int nCTM = ...;
+int nCT = ...;
+int nN = nCT + 2;
 
-range V = 1..nV;
+range V = 1..nCTM;
 range N = 1..nN;
-range R = 1..nC;
+range R = 1..nCT;
 
 float c[N][N] = ...;
 float t[N][N] = ...;
@@ -70,7 +70,7 @@ subject to{
 		a[i] <= s[i][k][r] <= b[i];
 	}
 	
-	forall(r in R, k in V: r != nC){
+	forall(r in R, k in V: r != nCT){
 		s[nN][k][r] <= s[1][k][(r + 1)];	
 	}
 	
@@ -128,7 +128,7 @@ execute
 		}
 		writeln("- From (", node.OriginId, ") To (", node.CustomerId, ")");
 		writeln("  ServiceTime: ", s[node.CustomerId][node.VehicleId][node.RouteId]);
-		writeln("  Demand: ", d[node.CustomerId]);
+		writeln("  DemanLP: ", d[node.CustomerId]);
 		writeln("  TravelTime: ", t[node.OriginId][node.CustomerId]);
 	}
 }

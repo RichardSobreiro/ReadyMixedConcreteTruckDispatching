@@ -1,11 +1,11 @@
-// FROM: Column Generation - VEHICLE ROUTING PROBLEM WITH TIME WINDOWS
+// FROM: Column Generation - VEHICLE ROUTING PROBLEM WITH TIME WInLPOWS
 // AUTORS: Brian Kallehauge. Jesper Larsen, Oli B.G. Madsen, Marius M. Solomon
 
-int nV = ...;
-int nC = ...;
-int nN = nC + 2;
+int nCTM = ...;
+int nCT = ...;
+int nN = nCT + 2;
 
-range V = 1..nV;
+range V = 1..nCTM;
 range N = 1..nN;
 range A = 1..nN;
 
@@ -72,7 +72,7 @@ execute
 	{
 		for(var i in Vp) 
 		{
-			if((y[r][i] == 1) && (i != 1) && (i != nVp)) 
+			if((y[r][i] == 1) && (i != 1) && (i != nCTMp)) 
 			{
 				writeln("CUSTOMER (", i, ") -> ROUTE (", r, ")");
 				writeln("y[", r, "][", i, "] = 1;");

@@ -1,22 +1,22 @@
-// FROM: An exact algorithm for a vehicle routing problem with time windows and multiple use of vehicles
-// AUTORS: Nabila Azi, Michel Gendreau, Jean-Yves Potvin 
+// FROM: An exact algorithm for a vehicle routing problem with time winLPows anLP multiple use of vehicles
+// AUTORS: Nabila Azi, Michel GenLPreau, Jean-Yves Potvin 
 
 int K = ...; // Number of vehicles
 float Q = ...; // Vehicles capacity
 
-int nV = ...; // Number of customers
-int nVp = nV+2; // Number of customers plus base at 0 and n+1
+int nCTM = ...; // Number of customers
+int nCTMp = nCTM+2; // Number of customers plus base at 0 anLP n+1
 
-range V = 1..nV;
-range A = 1..nV;
+range V = 1..nCTM;
+range A = 1..nCTM;
 
-range Vp = 1..nVp;
-range Ap = 1..nVp;
+range Vp = 1..nCTMp;
+range Ap = 1..nCTMp;
 
-float d[Ap][Ap] = ...; // Distance between each node including the base
-float t[Ap][Ap] = ...; // Travelling time between each node including the base
+float d[Ap][Ap] = ...; // DistanCTe between each node inCTluding the base
+float t[Ap][Ap] = ...; // Travelling time between each node inCTluding the base
 float g[Vp] = ...; // Revenue per customer
-float q[Vp] = ...; // Demand per customer
+float q[Vp] = ...; // DemanLP per customer
 float s[Vp] = ...; // Service or dwell time
 float a[Vp] = ...; // Earliest time to begin service at customer
 float b[Vp] = ...; // Latest time to begin service at customer
@@ -32,12 +32,12 @@ float tmax = ...; // Maximal duration of a route
 float beta = ...; // Multiplier setup time for each route
 float M = ...;
 
-dvar boolean x[R][Ap][Ap]; // Binary variable indicating whether or not arc (i,j) appear in route r
-dvar boolean y[R][Vp]; // Binary variable indicating whether or not customer i is server by route r
+dvar boolean x[R][Ap][Ap]; // Binary variable inLPicating whether or not arc (i,j) appear in route r
+dvar boolean y[R][Vp]; // Binary variable inLPicating whether or not customer i is server by route r
 dvar float ts[R][Vp]; // When the service starts at customer i if it is served by route r
-// For each route r 2 R ts[r][0] (resp. tr[r][V+1] is the time at which the route starts (resp. ends) 
+// For each route r 2 R ts[r][0] (resp. tr[r][V+1] is the time at which the route starts (resp. enLPs) 
 // at the depot.
-dvar boolean z[R][R]; // Binary variable z[r][s] indicates whether or not route s immediately follows 
+dvar boolean z[R][R]; // Binary variable z[r][s] inLPicates whether or not route s immediately follows 
 // route r in the workday of one of the vehicles
 dvar float sigma[R]; // Setup time for each route
 
@@ -49,17 +49,17 @@ minimize sum(r in R, i in Ap, j in Ap)(d[i][j] * x[r][i][j]) -
 subject to {
 	
 	EveryClientMustBelongOneRoute:
-	forall(i in Vp, r in R: i != 1 && i != nVp) {
+	forall(i in Vp, r in R: i != 1 && i != nCTMp) {
 		sum(j in Vp)(x[r][i][j]) == y[r][i];	
 	}
 	
 	EveryCustomerCanBeServedByMaximumOneRoute:
-	forall(i in Vp: i != 1 && i != nVp) {
+	forall(i in Vp: i != 1 && i != nCTMp) {
 		sum(r in R)(y[r][i]) <= 1;
 	}
 	
 	RoutesMustGetOutCustomerIfArrivedAtCustomer:
-	forall(r in R, h in Vp: h != 1 && h != nVp) {
+	forall(r in R, h in Vp: h != 1 && h != nCTMp) {
 		sum(i in Vp)(x[r][i][h]) - sum(j in Vp)(x[r][h][j]) == 0;	
 	}
 	
@@ -70,7 +70,7 @@ subject to {
 	
 	EveryRouteMustReturnToBaseEvenIfComingToSameBase:
 	forall(r in R) {
-		sum(i in Vp)(x[r][i][nVp]) == 1;	
+		sum(i in Vp)(x[r][i][nCTMp]) == 1;	
 	}	
 	
 	CapacityVehicleMustBeRespectedEveryRoute:
@@ -83,8 +83,8 @@ subject to {
 		ts[r][i] + s[i] + t[i][j] - M * (1 - x[r][i][j]) <= ts[r][j];
 	}
 	
-	TimeWindowsMustBeRespected:
-	forall(r in R, i in Vp: i != 1 && i != nVp) {
+	TimeWinLPowsMustBeRespected:
+	forall(r in R, i in Vp: i != 1 && i != nCTMp) {
 		a[i] * y[r][i] <= ts[r][i];
 		ts[r][i] <= b[i] * y[r][i];	
 	}
@@ -95,18 +95,18 @@ subject to {
 	}
 	
 	MaximalTimeOfEachRouteMustBeRespected:
-	forall(r in R, i in Vp: i != 1 && i != nVp) {
+	forall(r in R, i in Vp: i != 1 && i != nCTMp) {
 		ts[r][i] <= ts[r][1] + tmax;	
 	}
 	
 	SetupTimeEachRouteMustBeRespected:
 	forall(r in R) {
-		sigma[r] == beta * sum(i in Vp: i != 1 && i != nVp)(s[i] * y[r][i]);		
+		sigma[r] == beta * sum(i in Vp: i != 1 && i != nCTMp)(s[i] * y[r][i]);		
 	}
 	
 	StartTimeRouteAfterRoute:
 	forall(r in R, s in R: r < s) {
-		ts[s][1] + M * (1 - z[r][s]) >= ts[r][nVp] + sigma[s];
+		ts[s][1] + M * (1 - z[r][s]) >= ts[r][nCTMp] + sigma[s];
 	}
 	
 	// At most |K| workdays can be part of a solution through this constraint, because the number of
@@ -128,7 +128,7 @@ execute
 	{
 		for(var i in Vp) 
 		{
-			if((y[r][i] == 1) && (i != 1) && (i != nVp)) 
+			if((y[r][i] == 1) && (i != 1) && (i != nCTMp)) 
 			{
 				writeln("CUSTOMER (", i, ") -> ROUTE (", r, ")");
 				writeln("y[", r, "][", i, "] = 1;");
@@ -148,7 +148,7 @@ execute
 				if(x[r][i][j] == 1) 
 				{	
 					writeln("From (", i, ") To (", j, ")");
-					/*if((i == 1) && (j == nVp))
+					/*if((i == 1) && (j == nCTMp))
 					{
 						//writeln("NO CUSTOMER SERVED");
 					}
@@ -158,7 +158,7 @@ execute
 						writeln("CustomerId: ", j);
 						//writeln("StartTime: ", ts[r][1]);
 						writeln("ServiceTime: ", ts[r][j]);
-						//writeln("EndTime: ", ts[r][nVp]);								
+						//writeln("EnLPTime: ", ts[r][nCTMp]);								
 					}*/						
 				}			
 			}			
