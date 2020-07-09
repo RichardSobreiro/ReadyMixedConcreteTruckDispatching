@@ -21,6 +21,7 @@ float tc[V] = ...;  // Concrete truck mixers fixed cost
 float d[N] = ...; // Demand for RMC at customer trip i
 float a[N] = ...; // Begin for the time window at customer trip i 
 float b[N] = ...; // End for the time window at customer trip i
+float cfr[N] = ...; // Concrete flow rate at customer i
 
 float p[N] = ...; // Profit obtained from attending customer trip i
 
@@ -33,6 +34,7 @@ float MjobShop = ...; // Big M for job shop restrictions
 dvar boolean x[N][N][V][R]; // If concrete mixer truck k in his route r attend trip j comming from node/trip i
 dvar boolean y[V]; // If concrete mixer truck k is used
 dvar float s[N][V][R]; // Service time for customer trip i being served by vehicle k is his trip r
+dvar float ds[N]; // Duration of the service time at construction site for customer trip i -- NEW
 
 dvar float ld[V][R]; // Loading time duration for the concrete truck mixer k in his route r
 dvar float lft[V][R]; // Loading final time for the concrete truck mixer k in his route r
@@ -61,7 +63,7 @@ subject to {
 		a[i] <= s[i][k][r] <= b[i];
 	}
 	// 5 - Loading time for each trip must be respected
-	forall(k in V, r in R){
+	forall(k in V, r in R) {
 		ld[k][r] == sum(i in N, j in N)(x[i][j][k][r] * d[j]);
 	}
 	// 6 - Loading final time for each route of each vehicle
@@ -69,7 +71,7 @@ subject to {
 		lft[k][r] >= ld[k][r];	
 	}
 	// 7/8 - No one concrete truck mixer on his respective route can load at the same time in the same loading place
-	forall(r in R, s in R, k in V, l in V, i in N: i <= nLP && k != l){
+	forall(r in R, s in R, k in V, l in V, i in N: i <= nLP && k != l) {
 		lft[l][s] >= lft[k][r] + ld[l][s] - MjobShop * (1 - z[k][r][l][s]);
 		lft[k][r] >= lft[l][s] + ld[k][r] - MjobShop * z[k][r][l][s];  
 	}
@@ -86,7 +88,7 @@ subject to {
 		sum(pr in R, ii in N, jj in N: pr < r && ii <= nLP)(x[ii][jj][k][pr]) + (1 - x[i][j][k][r]) >= 1;
 	}
 	// 12 - If a concrete truck mixer arrives at some customer's trip destiny it must leave from it
-	forall(r in R, k in V, h in N: h > nLP && h <= (nN - nLP)){
+	forall(r in R, k in V, h in N: h > nLP && h <= (nN - nLP)) {
 		sum(i in N: i <= (nN - nLP))(x[i][h][k][r]) - sum(j in N: j > nLP)(x[h][j][k][r]) == 0;
 	}
 	// 13 - Service time of a preceeding route of each vehicle must be less than or equal the service time of the 
@@ -99,12 +101,19 @@ subject to {
 	forall(k in V, r in R, j in N: (j > (nN - nLP)) && (r < nCT)) {
 		sum(g in N)(x[nN - j + 1][g][k][r+1]) >= sum(h in N)(x[h][j][k][r]);
 	}
+	// ?? - Duration of the service time at customer i
+	forall(i in N) {
+		ds[i] == d[i] * cfr[i];
+	}
 	// 15/16 - Time windows between subsequent customer's trips must be respected
 	forall(r in R, k in V, i in N, j in N: (i != j)) {
 		if(i <= nLP) {
-			lft[k][r] >= s[j][k][r] - t[i][j] - M*(1 - x[i][j][k][r]);			
+			lft[k][r] >= s[j][k][r] - t[i][j] - M*(1 - x[i][j][k][r]);
+			lft[k][r] + t[i][j] <= s[j][k][r] + M*(1 - x[i][j][k][r]); 			
 		}
-		s[i][k][r] + t[i][j] - M*(1 - x[i][j][k][r]) <= s[j][k][r];
+		else {
+			s[i][k][r] + ds[i] + t[i][j] - M*(1 - x[i][j][k][r]) <= s[j][k][r];				
+		}
 	}
 	// 17 - A vehicle must not load at any loading place after himself 
 	forall(r in R, s in R, k in V, l in V: k == l){
@@ -112,11 +121,11 @@ subject to {
 	}
 	// 18 - A vehicle on his respective route cannot leave some customer's trip destiny an go to the same
 	// customer's trip destiny
-	forall(r in R, k in V, i in N, j in N: i == j){
+	forall(r in R, k in V, i in N, j in N: i == j) {
 		x[i][j][k][r] == 0;
 	}
 	// 19 - In the first route a vehicle can only left the start loading plant
-	forall(k in V, r in R, i in N, j in N: i != sd[k] && i <= nLP && j > nLP) {
+	forall(k in V, i in N, j in N: i != sd[k] && i <= nLP && j > nLP) {
 		x[i][j][k][1] == 0;
 	}
 }
@@ -125,6 +134,7 @@ tuple Node {
 	int VehicleId;
 	int RouteId;
 	float ServiceTime;
+	float DurationService;
 	int CustomerId;
 	int OriginId;
 	int IsUsed;
@@ -142,27 +152,9 @@ execute
 			{
 				for(var j in N)
 				{
-					if((x[i][j][k][r] == 1) && (i <= nLP)) 
-					{	
-						writeln("lft[",k,"][",r,"] = ", lft[k][r]);
-						writeln("ld[",k,"][",r,"] = ", ld[k][r]);
-					}			
-				}			
-			}		
-		}
-	}
-
-	for(var k in V)
-	{
-		for(var r in R)
-		{
-			for(var i in N) 
-			{
-				for(var j in N)
-				{
 					if(x[i][j][k][r] == 1) 
 					{	
-						Nodes.add(k, r, s[j][k][r], j, i, y[k]);
+						Nodes.add(k, r, s[j][k][r], ds[j], j, i, y[k]);
 					}			
 				}			
 			}		
@@ -200,8 +192,9 @@ execute
 			writeln("- From (", node.OriginId, ") To (", node.CustomerId, ")");	
 		}
 		writeln("  ServiceTime: ", s[node.CustomerId][node.VehicleId][node.RouteId]);
-		writeln("lft[",k,"][",r,"] = ", lft[k][r]);
-		writeln("ld[",k,"][",r,"] = ", ld[k][r]);
+		writeln("  DurationService: ", ds[node.CustomerId]);
+		writeln("  lft[",node.VehicleId,"][",node.RouteId,"] = ", lft[node.VehicleId][node.RouteId]);
+		writeln("  ld[",node.VehicleId,"][",node.RouteId,"] = ", ld[node.VehicleId][node.RouteId]);
 		writeln("  DemanLP: ", d[node.CustomerId]);
 		writeln("  Profit: ", p[node.CustomerId]);
 		writeln("  Cost: ", c[node.OriginId][node.CustomerId]);
