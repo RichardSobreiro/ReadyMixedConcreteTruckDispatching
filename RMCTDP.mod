@@ -1,7 +1,7 @@
 // FROM: -
 // AUTORS: Richard Sobreiro
 
-// RMC = Ready Mixed Concrete
+// RMC = Ready Mixed Concrete - One customer by delivery
 
 int nLP = ...; // Number of loading plants
 int nCTM = ...; // Number of concrete truck mixers

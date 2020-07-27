@@ -39,10 +39,16 @@
 			<ref name="MDVRPTWMultiTrips.mod" type="model">
 			</ref>
 		</config>
-		<config default="true" name="RMCTDP" category="opl">
+		<config default="false" name="RMCTDP" category="opl">
 			<ref name="RMCTDP.dat" type="data">
 			</ref>
 			<ref name="RMCTDP.mod" type="model">
+			</ref>
+		</config>
+		<config default="true" name="RMCTDP_Simple" category="opl">
+			<ref name="RMCTDP_Simple.mod" type="model">
+			</ref>
+			<ref name="RMCTDP_Simple.dat" type="data">
 			</ref>
 		</config>
 	</configs>
