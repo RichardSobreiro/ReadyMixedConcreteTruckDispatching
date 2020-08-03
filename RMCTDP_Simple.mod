@@ -13,7 +13,7 @@ range D = 1..nD; // Set of customer's deliveries
 
 float c[MT][D] = ...; // Cost of the journey between loading plant of the mixer truck k and the construction site of the delivery i
 float t[MT][D] = ...; // Duration of the journey between loading plant of the vehicle k and customer construction site i
-int lpctm[MT] = ...; // If loading plant i is the base of the concrete truck mixer k 
+int lpmt[MT] = ...; // Index of the loading plant which is the base for the mixer truck k.
 
 float q = ...; // Concrete truck mixers capacity
 float tc = ...; // Concrete truck mixers fixed maintenance cost
@@ -23,10 +23,13 @@ float a[D] = ...; // Begin for the time window at customer delivery i
 float b[D] = ...; // End for the time window at customer delivery i
 float cfr[D] = ...; // Concrete flow rate at customer i
 float dmbs[D] = ...; // If delivery must be served
+float dmt[MT][D] = ...; // If the type of RMC of the delivery i is available at the base loading place of the mixer truck k 
 
 float r[D] = ...; // Profit obtained from attending customer delivery i
 
 float ld = ...; // Loading time duration for each delivery
+
+int fdno = ...; // Index of the first delivery of the new order
 
 float M = ...; // Big M for delivery i and j
 
@@ -40,7 +43,6 @@ dvar float ds[D]; // Duration of the service time at construction site for custo
 dvar float lbt[D]; // Loading begin time for the delivery i
 
 dvar boolean sbf[D][D]; // Window i begins first than window j
-
 // 1
 maximize sum(k in MT, i in D)(x[k][i] * (r[i] - c[k][i])) - sum(k in MT)(y[k] * tc);
 
@@ -68,7 +70,7 @@ subject to {
 	}
 	// ? - Each delivery can be served by only one mixer truck
 	forall(i in D) {
-		 sum(k in MT)(x[k][i]) <= 1;	
+		sum(k in MT)(x[k][i]) <= 1;	
 	}
 	// ? - If truck mixer k is used in the period 
 	forall(k in MT, i in D) {
@@ -76,20 +78,28 @@ subject to {
 	}
 	// ? - If delivery must be served
 	forall(i in D) {
-		 sum(k in MT)(x[k][i]) >= dmbs[i];
+		sum(k in MT)(x[k][i]) >= dmbs[i];
 	}
-	// ? - If delivery of the same order is served all deliveries of the order must also be served
+	// ? - If delivery can be served by the mixer truck. 1 if the base loading place of the mixer truck
+	// has the raw materials of the RMC type of the delivery and 0 otherwise
+	forall(k in MT, i in D) {
+ 		x[k][i] <= dmt[k][i];	
+	}
+	// ? - If a delivery of the same order is served all deliveries of the order must also be served
+	forall(i in D, j in D: i >= fdno && j >= fdno && i != j){
+		sum(k in MT)(x[k][i]) <= sum(l in MT)(x[l][j]);	
+	}
 }
 
 tuple Node 
 {
-	int Delivery;
+	key int Delivery;
 	key int MixerTruck;
 	key float LoadingBeginTime;
 	float ServiceTime;
 	key float ReturnTime;
 	int LoadingPlant;
-	float Profit;
+	float Revenue;
 	float BeginTimeWindow;
 	float EndTimeWindow;
 	float TravelTime;
@@ -110,7 +120,7 @@ execute
 			{	
 				for(var j in LP)
 				{
-					if(lpctm[k] == j)
+					if(lpmt[k] == j)
 					{
 						Nodes.add(i, k, lbt[i], s[k][i], rs[k][i], j, r[i], a[i], b[i], t[k][i], c[k][i], ds[i], dmbs[i]);						
 					}				
@@ -127,7 +137,7 @@ execute
 		writeln("LoadingBeginTime: ", node.LoadingBeginTime);	
 		writeln("ServiceTime: ", node.ServiceTime);	
 		writeln("ReturnTime: ", node.ReturnTime);
-		writeln("Profit: ", node.Profit);
+		writeln("Revenue: ", node.Revenue);
 		writeln("BeginTimeWindow: ", node.BeginTimeWindow);
 		writeln("EndTimeWindow: ", node.EndTimeWindow);
 		writeln("TravelTime: ", node.TravelTime);
