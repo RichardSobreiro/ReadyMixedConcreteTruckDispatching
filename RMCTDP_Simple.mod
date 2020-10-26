@@ -23,7 +23,7 @@ float a[D] = ...; // Begin for the time window at customer delivery i
 float b[D] = ...; // End for the time window at customer delivery i
 float cfr[D] = ...; // Concrete flow rate at customer i
 float dmbs[D] = ...; // If delivery must be served
-float dmt[MT][D] = ...; // If the type of RMC of the delivery i is available at the base loading place of the mixer truck k 
+float dmt[MT][D] = ...; // If the type of RMC of the delivery i is available at the base loading plant of the mixer truck k 
 
 float r[D] = ...; // Profit obtained from attending customer delivery i
 
@@ -110,8 +110,8 @@ tuple Node
 
 sorted {Node} Nodes = {};
 
-execute 
-{
+
+execute {
 	for(var k in MT)
 	{
 		for(var i in D) 
@@ -128,6 +128,7 @@ execute
 			}			
 		}
 	}
+	
 	for(var node in Nodes)
 	{
 		writeln("------------------------------------------------------");
@@ -146,4 +147,29 @@ execute
 		writeln("IfDeliveryMustBeServed: ", node.IfDeliveryMustBeServed);
 		writeln("------------------------------------------------------");	
 	}
+
+	var f = new IloOplOutputFile("C:\\RMCDP\\Result.json");
+	f.writeln("{");
+	f.writeln("	\"viagens\": [");
+	for(var viagem in Nodes){
+		f.writeln("	{");
+		f.writeln("		\"Delivery\": ", viagem.Delivery, ",");			
+		f.writeln("		\"MixerTruck\": ", viagem.MixerTruck, ",");
+		f.writeln("		\"LoadingBeginTime\": ", viagem.LoadingBeginTime, ",");
+		f.writeln("		\"ServiceTime\": ", viagem.ServiceTime, ",");
+		f.writeln(" 	\"ReturnTime\": ", viagem.ReturnTime, ",");
+		f.writeln(" 	\"LoadingPlant\": ", viagem.LoadingPlant, ",");
+		f.writeln(" 	\"Revenue\": ", viagem.Revenue, ",");	
+		f.writeln(" 	\"BeginTimeWindow\": ", viagem.BeginTimeWindow, ",");
+		f.writeln(" 	\"EndTimeWindow\": ", viagem.EndTimeWindow, ",");
+		f.writeln(" 	\"TravelTime\": ", viagem.TravelTime, ",");
+		f.writeln(" 	\"TravelCost\": ", viagem.TravelCost, ",");
+		f.writeln(" 	\"DurationOfService\": ", viagem.DurationOfService, ",");
+		f.writeln(" 	\"IfDeliveryMustBeServed\": ", viagem.IfDeliveryMustBeServed);
+		f.writeln("	},");
+	}
+	f.writeln("]");
+	f.writeln("}");	
+	f.close();
 }
+
