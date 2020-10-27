@@ -150,7 +150,7 @@ execute {
 
 	var f = new IloOplOutputFile("C:\\RMCDP\\Result.json");
 	f.writeln("{");
-	f.writeln("	\"viagens\": [");
+	f.writeln("	\"trips\": [");
 	for(var viagem in Nodes){
 		f.writeln("	{");
 		f.writeln("		\"Delivery\": ", viagem.Delivery, ",");			
