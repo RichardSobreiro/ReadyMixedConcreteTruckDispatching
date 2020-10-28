@@ -26,12 +26,19 @@ def main(argv):
         row['ReturnTime'] = startTime + timedelta(minutes=row['ReturnTime'])
         df.at[index, 'ReturnTime'] = row['ReturnTime']
 
-    readyMixerConcreteTruck = df['MixerTruck']
-    tripBeginLoadingTime = df['LoadingBeginTime']
-    tripReturnTime = df['ReturnTime']
-    colors = df['Delivery']
+    df['ReturnTime'] = pd.to_datetime(df['ReturnTime'])
+    df['LoadingBeginTime'] = pd.to_datetime(df['LoadingBeginTime'])
 
-    fig = px.timeline(df, x_start=tripBeginLoadingTime, x_end=tripReturnTime, y=readyMixerConcreteTruck, color=colors, title="Trips Overview")
+    df.info()
+
+    fig = px.timeline(df, 
+        x_start=df['LoadingBeginTime'], 
+        x_end=df['ReturnTime'], 
+        y=df['MixerTruck'], 
+        color=df['OrderId'], 
+        #hover_data=['LoadingBeginTime','ReturnTime','MixerTruck'],
+        #hover_data=df.columns,
+        title="Trips Overview")
     fig.update_yaxes(autorange='reversed')
     fig.update_layout(title_font_size=42, font_size=18, title_font_family='Arial')
     plotly.offline.plot(fig, filename='TripsOverviewGant.html')

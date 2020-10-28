@@ -22,6 +22,7 @@ float d[D] = ...; // Demand for RMC at customer delivery i
 float a[D] = ...; // Begin for the time window at customer delivery i 
 float b[D] = ...; // End for the time window at customer delivery i
 float cfr[D] = ...; // Concrete flow rate at customer i
+float od[D] = ...; // Concrete flow rate at customer i
 float dmbs[D] = ...; // If delivery must be served
 float dmt[MT][D] = ...; // If the type of RMC of the delivery i is available at the base loading plant of the mixer truck k 
 
@@ -47,9 +48,19 @@ dvar boolean sbf[D][D]; // Window i begins first than window j
 maximize sum(k in MT, i in D)(x[k][i] * (r[i] - c[k][i])) - sum(k in MT)(y[k] * tc);
 
 subject to {
+	/*forall(k in MT){
+		x[k][9] != x[k][32];	
+	}*/
+	/*x[35][9] == 1;
+	sbf[9][32] == 0;
+	sbf[32][9] == 1;*/
 	// ? - If service time window of the delivery i begins first than j
 	forall(i in D, j in D){
-		a[i] - a[j] >= -M * (sbf[i][j]);	
+		a[i] - a[j] >= -M * (sbf[i][j]);
+	}
+	// ? - If service time window of the delivery i is equal than j
+	forall(k in MT, i in D, j in D: a[i] == a[j] && i != j){
+		sbf[i][j] != sbf[j][i];	
 	}
 	// ? - Mixer truck can not serve more than one delivery at the same time
 	forall(k in MT, i in D, j in D){
@@ -98,6 +109,7 @@ tuple Node
 	key float LoadingBeginTime;
 	float ServiceTime;
 	key float ReturnTime;
+	int OrderId;
 	int LoadingPlant;
 	float Revenue;
 	float BeginTimeWindow;
@@ -112,6 +124,9 @@ sorted {Node} Nodes = {};
 
 
 execute {
+	writeln("sbf[9][32]: ", sbf[9][32]);
+	writeln("sbf[32][9]: ", sbf[32][9]);
+
 	for(var k in MT)
 	{
 		for(var i in D) 
@@ -122,7 +137,7 @@ execute {
 				{
 					if(lpmt[k] == j)
 					{
-						Nodes.add(i, k, lbt[i], s[k][i], rs[k][i], j, r[i], a[i], b[i], t[k][i], c[k][i], ds[i], dmbs[i]);						
+						Nodes.add(i, k, lbt[i], s[k][i], rs[k][i], od[i], j, r[i], a[i], b[i], t[k][i], c[k][i], ds[i], dmbs[i]);						
 					}				
 				}
 			}			
@@ -133,6 +148,7 @@ execute {
 	{
 		writeln("------------------------------------------------------");
 		writeln("MixerTruck: ", node.MixerTruck);
+		writeln("OrderId: ", node.OrderId);
 		writeln("Delivery: ", node.Delivery);
 		writeln("LoadingPlant: ", node.LoadingPlant);	
 		writeln("LoadingBeginTime: ", node.LoadingBeginTime);	
@@ -150,9 +166,14 @@ execute {
 
 	var f = new IloOplOutputFile("C:\\RMCDP\\Result.json");
 	f.writeln("{");
+	f.writeln("	\"numberOfLoadingPlaces\": ", nLP, ",");
+	f.writeln("	\"numberOfMixerTrucks\": ", nMT, ",");
+	f.writeln("	\"numberOfDeliveries\": ", nD, ",");
 	f.writeln("	\"trips\": [");
+	var i = 1;
 	for(var viagem in Nodes){
 		f.writeln("	{");
+		f.writeln("		\"OrderId\": ", viagem.OrderId, ",");
 		f.writeln("		\"Delivery\": ", viagem.Delivery, ",");			
 		f.writeln("		\"MixerTruck\": ", viagem.MixerTruck, ",");
 		f.writeln("		\"LoadingBeginTime\": ", viagem.LoadingBeginTime, ",");
@@ -166,7 +187,13 @@ execute {
 		f.writeln(" 	\"TravelCost\": ", viagem.TravelCost, ",");
 		f.writeln(" 	\"DurationOfService\": ", viagem.DurationOfService, ",");
 		f.writeln(" 	\"IfDeliveryMustBeServed\": ", viagem.IfDeliveryMustBeServed);
-		f.writeln("	},");
+		if (i == nD) {
+			f.writeln("	}");				
+		}
+		else{
+			f.writeln("	},");	
+		}
+		i = i + 1;
 	}
 	f.writeln("]");
 	f.writeln("}");	
