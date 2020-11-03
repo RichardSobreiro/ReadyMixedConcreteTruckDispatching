@@ -38,7 +38,7 @@ def main(argv):
         color=df['OrderId'], 
         #hover_data=['LoadingBeginTime','ReturnTime','MixerTruck'],
         #hover_data=df.columns,
-        title="Trips Overview")
+        title="solution (integer optimal, tolerance) with objective -10210.41")
     fig.update_yaxes(autorange='reversed')
     fig.update_layout(title_font_size=42, font_size=18, title_font_family='Arial')
     plotly.offline.plot(fig, filename='TripsOverviewGant.html')

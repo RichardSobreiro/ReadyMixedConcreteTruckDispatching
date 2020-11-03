@@ -22,7 +22,7 @@ float d[D] = ...; // Demand for RMC at customer delivery i
 float a[D] = ...; // Begin for the time window at customer delivery i 
 float b[D] = ...; // End for the time window at customer delivery i
 float cfr[D] = ...; // Concrete flow rate at customer i
-float od[D] = ...; // Concrete flow rate at customer i
+float od[D] = ...; // Order id of delivery i
 float dmbs[D] = ...; // If delivery must be served
 float dmt[MT][D] = ...; // If the type of RMC of the delivery i is available at the base loading plant of the mixer truck k 
 
@@ -48,12 +48,6 @@ dvar boolean sbf[D][D]; // Window i begins first than window j
 maximize sum(k in MT, i in D)(x[k][i] * (r[i] - c[k][i])) - sum(k in MT)(y[k] * tc);
 
 subject to {
-	/*forall(k in MT){
-		x[k][9] != x[k][32];	
-	}*/
-	/*x[35][9] == 1;
-	sbf[9][32] == 0;
-	sbf[32][9] == 1;*/
 	// ? - If service time window of the delivery i begins first than j
 	forall(i in D, j in D){
 		a[i] - a[j] >= -M * (sbf[i][j]);
@@ -124,8 +118,6 @@ sorted {Node} Nodes = {};
 
 
 execute {
-	writeln("sbf[9][32]: ", sbf[9][32]);
-	writeln("sbf[32][9]: ", sbf[32][9]);
 
 	for(var k in MT)
 	{
