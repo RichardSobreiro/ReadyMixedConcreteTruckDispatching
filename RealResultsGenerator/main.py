@@ -2,7 +2,9 @@ import sys
 import pandas as pd
 import numpy as np
 import haversine as hs
-from datetime import datetime
+from datetime import datetime, timedelta
+import plotly_express as px
+import plotly
 
 class LoadingPlace:  
     def __init__(self, index, CODCENTCUS, LATITUDE_FILIAL, LONGITUDE_FILIAL):  
@@ -20,14 +22,21 @@ class MixerTruck:
         self.LONGITUDE_FILIAL = LONGITUDE_FILIAL 
 
 class Order:  
-    def __init__(self, CODPROGRAMACAO, CODCENTCUS, MEDIA_M3_DESCARGA, VALTOTALPROGRAMACAO):  
+    def __init__(self, CODPROGRAMACAO, CODCENTCUS, MEDIA_M3_DESCARGA, VALTOTALPROGRAMACAO, 
+        LATITUDE_OBRA, LONGITUDE_OBRA, LATITUDE_FILIAL, LONGITUDE_FILIAL):  
         self.CODPROGRAMACAO = CODPROGRAMACAO 
         self.CODCENTCUS = CODCENTCUS 
         self.MEDIA_M3_DESCARGA = MEDIA_M3_DESCARGA 
         self.VALTOTALPROGRAMACAO = VALTOTALPROGRAMACAO 
+        self.LATITUDE_OBRA = LATITUDE_OBRA
+        self.LONGITUDE_OBRA = LONGITUDE_OBRA
+        self.LATITUDE_FILIAL = LATITUDE_FILIAL 
+        self.LONGITUDE_FILIAL = LONGITUDE_FILIAL 
 
 class Delivery:  
-    def __init__(self, HORCHEGADAOBRA, CODPROGRAMACAO, CODPROGVIAGEM, CODCENTCUSVIAGEM, VLRTOTALNF, VALVOLUMEPROG, CUSVAR, CODTRACO, LATITUDE_OBRA, LONGITUDE_OBRA):  
+    def __init__(self, VLRVENDA, HORCHEGADAOBRA, CODPROGRAMACAO, CODPROGVIAGEM, CODCENTCUSVIAGEM, 
+        VLRTOTALNF, VALVOLUMEPROG, CUSVAR, CODTRACO, LATITUDE_OBRA, LONGITUDE_OBRA):  
+        self.VLRVENDA = VLRVENDA
         self.HORCHEGADAOBRA = HORCHEGADAOBRA
         self.CODPROGRAMACAO = CODPROGRAMACAO 
         self.CODPROGVIAGEM = CODPROGVIAGEM 
@@ -40,83 +49,69 @@ class Delivery:
         self.LONGITUDE_OBRA = LONGITUDE_OBRA
 
 def main(argv):
-    basePath = 'C:\\Users\\Richard Sobreiro\\Desktop\\AP-GOIANIA-13-06-2019'
+    # G = ox.graph_from_place('wien flughafen austria')
+    # ox.save_graph_xml(G, filepath='./osm/test.osm')
+
+    dataFolder = 'RJ-13-06-2019'
+    basePath = 'C:\\Users\\Richard Sobreiro\\Desktop\\' + dataFolder
     DEFAULT_DIESEL_COST = 3.5
-    DEFAULT_RMC_COST = 150
-    NEW_ORDER_ID = 141126
-    FIXED_MIXED_TRUCK_COST = 50
-    FIXED_MIXED_TRUCK_CAPACIT_M3 = 10
-    FIXED_KM_PER_L = 2
+    FIXED_L_PER_KM = 27.5/100
 
     # dfLoadingPlaces = pd.read_csv(basePath + '\\LoadingPlaces.csv')
     # print(dfLoadingPlaces)
 
     dfTrips = pd.read_csv(basePath + '\\Trips.csv', encoding = "ISO-8859-1")
     dfTrips = dfTrips.sort_values('CODPROGRAMACAO')
-    print(dfTrips)
+    #print(dfTrips)
 
-    NEW_ORDER_ID = dfTrips.tail(1).iloc[0]['CODPROGRAMACAO']
+    dfTrips['HORSAIDACENTRAL'] = pd.to_datetime(dfTrips['HORSAIDACENTRAL'])
+    dfTrips['HORCHEGADACENTRAL'] = pd.to_datetime(dfTrips['HORCHEGADACENTRAL'])
+
+    dfTrips['MIXERTRUCKINDEX'] = 0
 
     loadingPlaces = []
-    loadingPlacesIndex = 1
+    loadingPlacesIndex = 0
     mixerTrucks = []
     mixerTrucksIndex = 0
     orders = []
     deliveries = []
+    today = datetime.utcnow().date()
+    startTime = datetime(today.year, today.month, today.day, 0, 0, 0, 0) 
     for index, row in dfTrips.iterrows():
         loadingPlace = next((lp for lp in loadingPlaces if lp.CODCENTCUS == row['CODCENTCUSNOTAFISCAL']), None)
         if loadingPlace == None:
+            loadingPlacesIndex += 1
             loadingPlace = LoadingPlace(loadingPlacesIndex, row['CODCENTCUSNOTAFISCAL'], row['LATITUDE_FILIAL'], row['LONGITUDE_FILIAL'])
             loadingPlaces.append(loadingPlace)
-            loadingPlacesIndex += 1
 
         mixerTruck = next((mt for mt in mixerTrucks if mt.CODVEICULO == row['CODVEICULO']), None)
         if mixerTruck == None:
+            mixerTrucksIndex += 1
             mixerTruck = MixerTruck(mixerTrucksIndex, row['CODVEICULO'], row['CODCENTCUSNOTAFISCAL'], row['LATITUDE_FILIAL'], row['LONGITUDE_FILIAL'])
             mixerTrucks.append(mixerTruck)
-            mixerTrucksIndex += 1
+        dfTrips.at[index, 'MIXERTRUCKINDEX'] = mixerTruck.index
         
         order = next((o for o in orders if o.CODPROGRAMACAO == row['CODPROGRAMACAO']), None)
         if order == None:
-            order = Order(row['CODPROGRAMACAO'], row['CODCENTCUS'], row['MEDIA_M3_DESCARGA'], row['VALTOTALPROGRAMACAO'])
+            order = Order(row['CODPROGRAMACAO'], row['CODCENTCUSNOTAFISCAL'], row['MEDIA_M3_DESCARGA'], row['VALTOTALPROGRAMACAO'], 
+                LATITUDE_OBRA=row['LATITUDE_OBRA'], LONGITUDE_OBRA=row['LONGITUDE_OBRA'], 
+                LATITUDE_FILIAL=row['LATITUDE_FILIAL'], LONGITUDE_FILIAL=row['LONGITUDE_FILIAL'])
             orders.append(order)
 
         delivery = next((v for v in deliveries if v.CODPROGVIAGEM == row['CODPROGVIAGEM']), None)
-        h = row['HORCHEGADAOBRA']
-
         if delivery == None:
             constructionTime = datetime.strptime(row['HORCHEGADAOBRA'], '%m/%d/%Y %H:%M')
             minutes = (constructionTime.hour * 60) + constructionTime.minute
-            delivery = Delivery(HORCHEGADAOBRA = minutes, CODPROGRAMACAO=row['CODPROGRAMACAO'], CODPROGVIAGEM=row['CODPROGVIAGEM'], 
+            delivery = Delivery(VLRVENDA=row['VLRVENDA'], HORCHEGADAOBRA = minutes, CODPROGRAMACAO=row['CODPROGRAMACAO'], 
+                CODPROGVIAGEM=row['CODPROGVIAGEM'], 
                 CODCENTCUSVIAGEM=row['CODCENTCUSVIAGEM'], VLRTOTALNF=row['VLRTOTALNF'], VALVOLUMEPROG=row['VALVOLUMEPROG'], 
                 CUSVAR=row['CUSVAR'], CODTRACO=row['CODTRACO'], LATITUDE_OBRA=row['LATITUDE_OBRA'], 
                 LONGITUDE_OBRA=row['LONGITUDE_OBRA'])
+            if delivery.CUSVAR <= 0:
+                delivery.CUSVAR = 150
             deliveries.append(delivery)
-    
-    nLP = len(loadingPlaces)
-    nMT = len(mixerTrucks)
-    nD = len(deliveries)
-    lpmt = np.zeros((len(mixerTrucks)))
-    c = np.zeros((len(mixerTrucks), len(deliveries)))
-    t = np.zeros((len(mixerTrucks), len(deliveries)))
-    q = FIXED_MIXED_TRUCK_CAPACIT_M3
-    tc = FIXED_MIXED_TRUCK_COST
-    d = np.zeros((len(deliveries)))
-    a = np.zeros((len(deliveries)))
-    b = np.zeros((len(deliveries)))
-    cfr = np.zeros((len(deliveries)))
-    od = np.zeros((len(deliveries)))
-    dmbs = np.zeros((len(deliveries)))
-    dmt = np.zeros((len(mixerTrucks), len(deliveries)))
 
-    r = np.zeros((len(deliveries)))
-
-    ld = 8
-
-    fdno = 0
-
-    M = 720
-
+    totalProfit = 0
     i = 0
     for mt in mixerTrucks:
         j = 0
@@ -124,161 +119,36 @@ def main(argv):
             loadingPlaceLatLong = (float(mt.LATITUDE_FILIAL), float(mt.LONGITUDE_FILIAL))
             constructionSiteLatLong = (float(dl.LATITUDE_OBRA), float(dl.LONGITUDE_OBRA))
             distance = hs.haversine(loadingPlaceLatLong, constructionSiteLatLong)
-            if dl.CUSVAR == 0 or dl.CUSVAR == None:
-                dl.CUSVAR = DEFAULT_RMC_COST
-            cost = (dl.CUSVAR * dl.VALVOLUMEPROG) + ((distance/FIXED_KM_PER_L) * 2 * DEFAULT_DIESEL_COST)
-            c[i][j] = round(cost)
-            t[i][j] = round(distance * 2 * 2)
-            loadingPlace = next((lp for lp in loadingPlaces if lp.CODCENTCUS == mt.CODCENTCUS), None)
-            lpmt[i] = int(loadingPlace.index)
-            d[j] = dl.VALVOLUMEPROG
-            a[j] = dl.HORCHEGADAOBRA
-            b[j] = dl.HORCHEGADAOBRA + 15
-            cfr[j] = 3
-            od[j] = dl.CODPROGRAMACAO
-            if dl.CODPROGRAMACAO == NEW_ORDER_ID:
-                dmbs[j] = 0
-            else:
-                dmbs[j] = 1
-            dmt[i][j] = 1
-            r[j] = dl.VLRTOTALNF
-            ld = 8
-            if fdno == 0 and dl.CODPROGRAMACAO == NEW_ORDER_ID:
-                fdno = j
-
+            if distance > 200:
+                print('ARCHTUNG! PANZER!')
+                print('Location 1: ' + str((float(mt.LATITUDE_FILIAL), float(mt.LONGITUDE_FILIAL))))
+                print('Location 2: '+ str((float(dl.LATITUDE_OBRA), float(dl.LONGITUDE_OBRA))))
+                print('Distance: '+ str(distance))
+            cost = dl.CUSVAR + (distance * FIXED_L_PER_KM * 2 * DEFAULT_DIESEL_COST)
+            totalProfit += (dl.VLRVENDA - cost) * dl.VALVOLUMEPROG
             j += 1
         i += 1
+
+    dfTrips['FINAL'] = ''
+    dfTrips['BEGIN'] = ''
+    dfTrips['FINAL'] = dfTrips['HORCHEGADACENTRAL'].dt.strftime("%A, %d. %B %Y %I:%M%p")
+    dfTrips['BEGIN'] = dfTrips['HORSAIDACENTRAL'].dt.strftime("%A, %d. %B %Y %I:%M%p")
     
-    lpmt = lpmt.astype(np.int32)
-
-    datfile = open(basePath + '\\RMCTDP_Simple_Ref.dat', 'w+')
-
-    datfile.write('nLP = ' + str(nLP) + ';\n')
-    datfile.write('nMT = ' + str(nMT) + ';\n')        
-    datfile.write('nD = ' + str(nD) + ';\n')
-
-    i = 1
-    strLpmt = 'lpmt = [' + str(lpmt[0])
-    while i < (nMT):
-        strLpmt += ', ' + str(lpmt[i])
-        i += 1
-    strLpmt += '];\n'
-    datfile.write(strLpmt)
-
-    datfile.write('c = [\n')
-    i = 0
-    while i < nMT:
-        strCLine = ''
-        strCLine = '[' + str(c[i][0])
-        j = 1
-        while j < nD:
-            strCLine += (', ' + str(c[i][j]))
-            j += 1
-        if i == (nMT - 1):
-            strCLine += ']\n'
-        else:
-            strCLine += '],\n'
-        datfile.write(strCLine)
-        i += 1
-    datfile.write('];\n')
-
-    datfile.write('t = [\n')
-    i = 0
-    while i < nMT:
-        strTLine = ''
-        strTLine = '[' + str(t[i][0])
-        j = 1
-        while j < nD:
-            strTLine += (', ' + str(t[i][j]))
-            j += 1
-        if i == (nMT - 1):
-            strTLine += ']\n'
-        else:
-            strTLine += '],\n'
-        datfile.write(strTLine)
-        i += 1
-    datfile.write('];\n')
-
-    datfile.write('dmt = [\n')
-    i = 0
-    while i < nMT:
-        strDmtLine = ''
-        strDmtLine = '[' + str(dmt[i][0])
-        j = 1
-        while j < nD:
-            strDmtLine += (', ' + str(dmt[i][j]))
-            j += 1
-        if i == (nMT - 1):
-            strDmtLine += ']\n'
-        else:
-            strDmtLine += '],\n'
-        datfile.write(strDmtLine)
-        i += 1
-    datfile.write('];\n')
-
-    datfile.write('q = ' + str(q) + ';\n')
-    datfile.write('tc = ' + str(tc) + ';\n')
-    datfile.write('fdno = ' + str(fdno) + ';\n')
-
-    i = 1
-    strD = 'd = [' + str(d[0])
-    while i < nD:
-        strD += ', ' + str(d[i])
-        i += 1
-    strD += '];\n'
-    datfile.write(strD)
-
-    i = 1
-    strA = 'a = [' + str(a[0])
-    while i < nD:
-        strA += ', ' + str(a[i])
-        i += 1
-    strA += '];\n'
-    datfile.write(strA)
-
-    i = 1
-    strB = 'b = [' + str(b[0])
-    while i < nD:
-        strB += ', ' + str(b[i])
-        i += 1
-    strB += '];\n'
-    datfile.write(strB)
-
-    i = 1
-    strCfr = 'cfr = [' + str(cfr[0])
-    while i < nD:
-        strCfr += ', ' + str(cfr[i])
-        i += 1
-    strCfr += '];\n'
-    datfile.write(strCfr)
-
-    i = 1
-    strOd = 'od = [' + str(od[0])
-    while i < nD:
-        strOd += ', ' + str(od[i])
-        i += 1
-    strOd += '];\n'
-    datfile.write(strOd)
-
-    i = 1
-    strR = 'r = [' + str(r[0])
-    while i < nD:
-        strR += ', ' + str(r[i])
-        i += 1
-    strR += '];\n'
-    datfile.write(strR)
-
-    i = 1
-    strDmbs = 'dmbs = [' + str(dmbs[0])
-    while i < nD:
-        strDmbs += ', ' + str(dmbs[i])
-        i += 1
-    strDmbs += '];\n'
-    datfile.write(strDmbs)
-
-    datfile.write('ld = ' + str(ld) + ';\n')
-
-    datfile.write('M = ' + str(M) + ';\n')
+    fig = px.timeline(dfTrips, 
+        x_start=dfTrips['HORSAIDACENTRAL'], 
+        x_end=dfTrips['HORCHEGADACENTRAL'], 
+        y=dfTrips['MIXERTRUCKINDEX'], 
+        color=dfTrips['CODPROGRAMACAO'], 
+        #hover_name='CODPROGVIAGEM',
+        #hover_data=['CODVEICULO', 'CODPROGRAMACAO', 'HORSAIDACENTRAL','HORCHEGADACENTRAL'],
+        #hover_data={ 'HORSAIDACENTRAL': '|%A, %d. %B %Y %I:%M%p', 'FINAL': True, 'HORCHEGADACENTRAL': False, 'CODPROGRAMACAO': True, 'CODVEICULO': True },
+        hover_data={ 'BEGIN': True, 'FINAL': True, 
+            'HORSAIDACENTRAL': False, 'HORCHEGADACENTRAL': False, 
+            'CODPROGRAMACAO': True, 'CODVEICULO': True, 'CODPROGVIAGEM': True },
+        title="Profit/Loss = " + str(totalProfit) + ' and Total MT = ' + str(len(mixerTrucks)))
+    fig.update_yaxes(autorange='reversed')
+    fig.update_layout(title_font_size=42, font_size=18, title_font_family='Arial')
+    plotly.offline.plot(fig, filename='TripsOverviewGantReal.html')
 
 if __name__ == '__main__':
     main(sys.argv[1:])

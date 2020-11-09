@@ -15,10 +15,12 @@ def main(argv):
 
     df = pd.DataFrame(tripsJson['trips'])
 
+    print(df)
+
     df['LoadingBeginTime'] = df['LoadingBeginTime'].astype(int)
     df['ReturnTime'] = df['ReturnTime'].astype(int)
 
-    df.loc[df['LoadingBeginTime'] < 0, 'LoadingBeginTime'] = (df['ServiceTime'] - 20)
+    df.loc[df['LoadingBeginTime'] < 0, 'LoadingBeginTime'] = (df['LoadingBeginTime'] - 20)
     
     for index, row in df.iterrows():
         row['LoadingBeginTime'] = startTime + timedelta(minutes=row['LoadingBeginTime'])

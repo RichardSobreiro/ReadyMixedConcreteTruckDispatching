@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import haversine as hs
 from datetime import datetime
+import googlemaps
+import json
 
 class LoadingPlace:  
     def __init__(self, index, CODCENTCUS, LATITUDE_FILIAL, LONGITUDE_FILIAL):  
@@ -10,6 +12,8 @@ class LoadingPlace:
         self.CODCENTCUS = CODCENTCUS 
         self.LATITUDE_FILIAL = LATITUDE_FILIAL 
         self.LONGITUDE_FILIAL = LONGITUDE_FILIAL 
+        self.DISTANCE = 0
+        self.TRAVELTIME = 0
 
 class MixerTruck:  
     def __init__(self, index, CODVEICULO, CODCENTCUS, LATITUDE_FILIAL, LONGITUDE_FILIAL):  
@@ -20,14 +24,21 @@ class MixerTruck:
         self.LONGITUDE_FILIAL = LONGITUDE_FILIAL 
 
 class Order:  
-    def __init__(self, CODPROGRAMACAO, CODCENTCUS, MEDIA_M3_DESCARGA, VALTOTALPROGRAMACAO):  
+    def __init__(self, CODPROGRAMACAO, CODCENTCUS, MEDIA_M3_DESCARGA, VALTOTALPROGRAMACAO, 
+        HORSAIDACENTRAL, LATITUDE_OBRA, LONGITUDE_OBRA):  
         self.CODPROGRAMACAO = CODPROGRAMACAO 
         self.CODCENTCUS = CODCENTCUS 
         self.MEDIA_M3_DESCARGA = MEDIA_M3_DESCARGA 
         self.VALTOTALPROGRAMACAO = VALTOTALPROGRAMACAO 
+        self.HORSAIDACENTRAL = HORSAIDACENTRAL
+        self.LATITUDE_OBRA = LATITUDE_OBRA
+        self.LONGITUDE_OBRA = LONGITUDE_OBRA
+        self.TRIPS = []
+        self.LOADINGPLACES_INFO = []
 
 class Delivery:  
-    def __init__(self, HORCHEGADAOBRA, CODPROGRAMACAO, CODPROGVIAGEM, CODCENTCUSVIAGEM, VLRTOTALNF, VALVOLUMEPROG, CUSVAR, CODTRACO, LATITUDE_OBRA, LONGITUDE_OBRA):  
+    def __init__(self, HORCHEGADAOBRA, CODPROGRAMACAO, CODPROGVIAGEM, CODCENTCUSVIAGEM, VLRTOTALNF, 
+        VALVOLUMEPROG, CUSVAR, CODTRACO, LATITUDE_OBRA, LONGITUDE_OBRA):  
         self.HORCHEGADAOBRA = HORCHEGADAOBRA
         self.CODPROGRAMACAO = CODPROGRAMACAO 
         self.CODPROGVIAGEM = CODPROGVIAGEM 
@@ -38,22 +49,39 @@ class Delivery:
         self.CUSVAR = CUSVAR
         self.LATITUDE_OBRA = LATITUDE_OBRA
         self.LONGITUDE_OBRA = LONGITUDE_OBRA
+        self.LOADINGPLACESINFO = []
 
 def main(argv):
-    basePath = 'C:\\Users\\Richard Sobreiro\\Desktop\\AP-GOIANIA-13-06-2019'
+    googleApiKeyPathFile = 'C:\GoogleApiKey\key.txt'
+    fileGmapsKey = open(googleApiKeyPathFile, 'r') 
+    lines = fileGmapsKey.readlines()
+    googleMapsApiKey = lines[0]
+    gmaps = googlemaps.Client(key=googleMapsApiKey)
+
+    # mountGeoData = True
+    # try:
+    #     with open('OrdersData.json') as json_file:
+    #         geodata = json.load(json_file)
+    #     mountGeoData = False
+    # except FileNotFoundError:
+    #     print("Geo data file does not exists")
+    #     mountGeoData = True
+
+    dataFolder = 'RJ-13-06-2019'
+    basePath = 'C:\\Users\\Richard Sobreiro\\Desktop\\' + dataFolder
     DEFAULT_DIESEL_COST = 3.5
     DEFAULT_RMC_COST = 150
-    NEW_ORDER_ID = 141126
     FIXED_MIXED_TRUCK_COST = 50
     FIXED_MIXED_TRUCK_CAPACIT_M3 = 10
     FIXED_KM_PER_L = 2
+    FIXED_L_PER_KM = 27.5/100
 
     # dfLoadingPlaces = pd.read_csv(basePath + '\\LoadingPlaces.csv')
     # print(dfLoadingPlaces)
 
     dfTrips = pd.read_csv(basePath + '\\Trips.csv', encoding = "ISO-8859-1")
     dfTrips = dfTrips.sort_values('CODPROGRAMACAO')
-    print(dfTrips)
+    #print(dfTrips)
 
     NEW_ORDER_ID = dfTrips.tail(1).iloc[0]['CODPROGRAMACAO']
 
@@ -78,7 +106,9 @@ def main(argv):
         
         order = next((o for o in orders if o.CODPROGRAMACAO == row['CODPROGRAMACAO']), None)
         if order == None:
-            order = Order(row['CODPROGRAMACAO'], row['CODCENTCUS'], row['MEDIA_M3_DESCARGA'], row['VALTOTALPROGRAMACAO'])
+            order = Order(row['CODPROGRAMACAO'], row['CODCENTCUSNOTAFISCAL'], row['MEDIA_M3_DESCARGA'], 
+                row['VALTOTALPROGRAMACAO'], row['HORSAIDACENTRAL'], 
+                row['LATITUDE_OBRA'], row['LONGITUDE_OBRA'])
             orders.append(order)
 
         delivery = next((v for v in deliveries if v.CODPROGVIAGEM == row['CODPROGVIAGEM']), None)
@@ -91,7 +121,45 @@ def main(argv):
                 CODCENTCUSVIAGEM=row['CODCENTCUSVIAGEM'], VLRTOTALNF=row['VLRTOTALNF'], VALVOLUMEPROG=row['VALVOLUMEPROG'], 
                 CUSVAR=row['CUSVAR'], CODTRACO=row['CODTRACO'], LATITUDE_OBRA=row['LATITUDE_OBRA'], 
                 LONGITUDE_OBRA=row['LONGITUDE_OBRA'])
+            order.TRIPS.append(delivery)
             deliveries.append(delivery)
+
+    with open(basePath + '\\DirectionsResultsStored.json') as json_file:
+        directionsResultsStored = json.load(json_file)
+
+    for order in orders:
+        for loadingPlace in loadingPlaces:
+            directionResult = next((directionResult for directionResult in odirectionsResultsStored 
+                if directionResult.OriginLatitude == float(loadingPlace.LATITUDE_FILIAL) and 
+                    directionResult.OriginLongitude = float(loadingPlace.LONGITUDE_FILIAL) and 
+                    directionResult.DestinyLatitude = float(order.LATITUDE_OBRA) and
+                    directionResult.DestinyLongitude = float(order.LONGITUDE_OBRA) and 
+                    directionResult.Hour = pd.to_datetime(order.HORSAIDACENTRAL).hour), None)
+            if directionResult == None:
+                loadingPlaceLatLong = (float(loadingPlace.LATITUDE_FILIAL), float(loadingPlace.LONGITUDE_FILIAL))
+                constructionSiteLatLong = (float(order.LATITUDE_OBRA), float(order.LONGITUDE_OBRA))
+                now = datetime.now()   
+                #directions_result = gmaps.directions("Sydney Town Hall", "Parramatta, NSW", mode="transit")
+                directions_result = gmaps.directions(loadingPlaceLatLong, constructionSiteLatLong, mode="transit", 
+                    departure_time=pd.to_datetime(order.HORSAIDACENTRAL))
+                loadingPlace.DISTANCE = directions_result[0]['legs'][0]['distance']['value']
+                loadingPlace.TRAVELTIME = int(directions_result[0]['legs'][0]['duration']['value']/60)
+                directionResult = {}
+                directionResult.OriginLatitude = float(loadingPlace.LATITUDE_FILIAL)
+                directionResult.OriginLongitude = float(loadingPlace.LONGITUDE_FILIAL)
+                directionResult.DestinyLatitude = float(order.LATITUDE_OBRA)
+                directionResult.DestinyLongitude = float(order.LONGITUDE_OBRA)
+                directionResult.Hour = pd.to_datetime(order.HORSAIDACENTRAL).hour
+                directionResult.TimeString = order.HORSAIDACENTRAL
+                directionResult.Result = directions_result
+                directionsResultsStored.append(directionResult)
+            else:
+                loadingPlace.DISTANCE = directions_result[0]['legs'][0]['distance']['value']
+                loadingPlace.TRAVELTIME = int(directions_result[0]['legs'][0]['duration']['value']/60)
+            order.LOADINGPLACES_INFO.append(loadingPlace)
+
+    with open(basePath + '\\DirectionsResultsStored.json', 'w') as outfile:
+        json.dump(directionsResultsStored, outfile, indent=4)
     
     nLP = len(loadingPlaces)
     nMT = len(mixerTrucks)
@@ -126,7 +194,7 @@ def main(argv):
             distance = hs.haversine(loadingPlaceLatLong, constructionSiteLatLong)
             if dl.CUSVAR == 0 or dl.CUSVAR == None:
                 dl.CUSVAR = DEFAULT_RMC_COST
-            cost = (dl.CUSVAR * dl.VALVOLUMEPROG) + ((distance/FIXED_KM_PER_L) * 2 * DEFAULT_DIESEL_COST)
+            cost = dl.CUSVAR + (distance * FIXED_L_PER_KM * 2 * DEFAULT_DIESEL_COST)
             c[i][j] = round(cost)
             t[i][j] = round(distance * 2 * 2)
             loadingPlace = next((lp for lp in loadingPlaces if lp.CODCENTCUS == mt.CODCENTCUS), None)
