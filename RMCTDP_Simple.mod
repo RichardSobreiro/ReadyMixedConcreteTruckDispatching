@@ -18,6 +18,9 @@ int lpmt[MT] = ...; // Index of the loading plant which is the base for the mixe
 float q = ...; // Concrete truck mixers capacity
 float tc = ...; // Concrete truck mixers fixed maintenance cost
 
+int dcod[D] = ...; // Id of the real delivery
+int odcod[D] = ...; // Id of the real order 
+
 float d[D] = ...; // Demand for RMC at customer delivery i
 float a[D] = ...; // Begin for the time window at customer delivery i 
 float b[D] = ...; // End for the time window at customer delivery i
@@ -44,6 +47,13 @@ dvar float ds[D]; // Duration of the service time at construction site for custo
 dvar float lbt[D]; // Loading begin time for the delivery i
 
 dvar boolean sbf[D][D]; // Window i begins first than window j
+
+execute
+{
+	cplex.epgap=0.02;
+	cplex.tilim=28800;
+}
+
 // 1
 maximize sum(k in MT, i in D)(x[k][i] * (r[i] - c[k][i])) - sum(k in MT)(y[k] * tc);
 
@@ -112,6 +122,8 @@ tuple Node
 	float TravelCost;
 	float DurationOfService;
 	int IfDeliveryMustBeServed;
+	int CodDelivery;
+	int CodOrder;
 };
 
 sorted {Node} Nodes = {};
@@ -129,7 +141,7 @@ execute {
 				{
 					if(lpmt[k] == j)
 					{
-						Nodes.add(i, k, lbt[i], s[k][i], rs[k][i], od[i], j, r[i], a[i], b[i], t[k][i], c[k][i], ds[i], dmbs[i]);						
+						Nodes.add(i, k, lbt[i], s[k][i], rs[k][i], od[i], j, r[i], a[i], b[i], t[k][i], c[k][i], ds[i], dmbs[i], dcod[i], odcod[i]);						
 					}				
 				}
 			}			
@@ -153,6 +165,8 @@ execute {
 		writeln("TravelCost: ", node.TravelCost);
 		writeln("DurationOfService: ", node.DurationOfService);
 		writeln("IfDeliveryMustBeServed: ", node.IfDeliveryMustBeServed);
+		writeln("CodDelivery: ", node.CodDelivery);
+		writeln("CodOrder: ", node.CodOrder);
 		writeln("------------------------------------------------------");	
 	}
 
@@ -178,7 +192,9 @@ execute {
 		f.writeln(" 	\"TravelTime\": ", viagem.TravelTime, ",");
 		f.writeln(" 	\"TravelCost\": ", viagem.TravelCost, ",");
 		f.writeln(" 	\"DurationOfService\": ", viagem.DurationOfService, ",");
-		f.writeln(" 	\"IfDeliveryMustBeServed\": ", viagem.IfDeliveryMustBeServed);
+		f.writeln(" 	\"IfDeliveryMustBeServed\": ", viagem.IfDeliveryMustBeServed, ",");
+		f.writeln("     \"CodDelivery\": ", viagem.CodDelivery, ",");
+		f.writeln("     \"CodOrder\": ", viagem.CodOrder);
 		if (i == nD) {
 			f.writeln("	}");				
 		}

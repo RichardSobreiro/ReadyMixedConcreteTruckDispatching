@@ -5,6 +5,9 @@ import haversine as hs
 from datetime import datetime, timedelta
 import plotly_express as px
 import plotly
+from gmplot import *
+
+from haversineResults import haversineResults
 
 class LoadingPlace:  
     def __init__(self, index, CODCENTCUS, LATITUDE_FILIAL, LONGITUDE_FILIAL):  
@@ -52,17 +55,13 @@ def main(argv):
     # G = ox.graph_from_place('wien flughafen austria')
     # ox.save_graph_xml(G, filepath='./osm/test.osm')
 
-    dataFolder = 'RJ-13-06-2019'
-    basePath = 'C:\\Users\\Richard Sobreiro\\Desktop\\' + dataFolder
+    dataFolder = 'BH-10-01-2020'
+    basePath = 'C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\' + dataFolder
     DEFAULT_DIESEL_COST = 3.5
     FIXED_L_PER_KM = 27.5/100
 
-    # dfLoadingPlaces = pd.read_csv(basePath + '\\LoadingPlaces.csv')
-    # print(dfLoadingPlaces)
-
     dfTrips = pd.read_csv(basePath + '\\Trips.csv', encoding = "ISO-8859-1")
     dfTrips = dfTrips.sort_values('CODPROGRAMACAO')
-    #print(dfTrips)
 
     dfTrips['HORSAIDACENTRAL'] = pd.to_datetime(dfTrips['HORSAIDACENTRAL'])
     dfTrips['HORCHEGADACENTRAL'] = pd.to_datetime(dfTrips['HORCHEGADACENTRAL'])
@@ -75,32 +74,33 @@ def main(argv):
     mixerTrucksIndex = 0
     orders = []
     deliveries = []
-    today = datetime.utcnow().date()
-    startTime = datetime(today.year, today.month, today.day, 0, 0, 0, 0) 
     for index, row in dfTrips.iterrows():
         loadingPlace = next((lp for lp in loadingPlaces if lp.CODCENTCUS == row['CODCENTCUSNOTAFISCAL']), None)
         if loadingPlace == None:
             loadingPlacesIndex += 1
-            loadingPlace = LoadingPlace(loadingPlacesIndex, row['CODCENTCUSNOTAFISCAL'], row['LATITUDE_FILIAL'], row['LONGITUDE_FILIAL'])
+            loadingPlace = LoadingPlace(loadingPlacesIndex, row['CODCENTCUSNOTAFISCAL'], row['LATITUDE_FILIAL'], 
+                row['LONGITUDE_FILIAL'])
             loadingPlaces.append(loadingPlace)
 
         mixerTruck = next((mt for mt in mixerTrucks if mt.CODVEICULO == row['CODVEICULO']), None)
         if mixerTruck == None:
             mixerTrucksIndex += 1
-            mixerTruck = MixerTruck(mixerTrucksIndex, row['CODVEICULO'], row['CODCENTCUSNOTAFISCAL'], row['LATITUDE_FILIAL'], row['LONGITUDE_FILIAL'])
+            mixerTruck = MixerTruck(mixerTrucksIndex, row['CODVEICULO'], row['CODCENTCUSNOTAFISCAL'], 
+                row['LATITUDE_FILIAL'], row['LONGITUDE_FILIAL'])
             mixerTrucks.append(mixerTruck)
         dfTrips.at[index, 'MIXERTRUCKINDEX'] = mixerTruck.index
         
         order = next((o for o in orders if o.CODPROGRAMACAO == row['CODPROGRAMACAO']), None)
         if order == None:
-            order = Order(row['CODPROGRAMACAO'], row['CODCENTCUSNOTAFISCAL'], row['MEDIA_M3_DESCARGA'], row['VALTOTALPROGRAMACAO'], 
+            order = Order(row['CODPROGRAMACAO'], row['CODCENTCUSNOTAFISCAL'], row['MEDIA_M3_DESCARGA'], 
+                row['VALTOTALPROGRAMACAO'], 
                 LATITUDE_OBRA=row['LATITUDE_OBRA'], LONGITUDE_OBRA=row['LONGITUDE_OBRA'], 
                 LATITUDE_FILIAL=row['LATITUDE_FILIAL'], LONGITUDE_FILIAL=row['LONGITUDE_FILIAL'])
             orders.append(order)
 
         delivery = next((v for v in deliveries if v.CODPROGVIAGEM == row['CODPROGVIAGEM']), None)
         if delivery == None:
-            constructionTime = datetime.strptime(row['HORCHEGADAOBRA'], '%m/%d/%Y %H:%M')
+            constructionTime = datetime.strptime(row['HORCHEGADAOBRA'], '%m/%d/%y %H:%M %p')
             minutes = (constructionTime.hour * 60) + constructionTime.minute
             delivery = Delivery(VLRVENDA=row['VLRVENDA'], HORCHEGADAOBRA = minutes, CODPROGRAMACAO=row['CODPROGRAMACAO'], 
                 CODPROGVIAGEM=row['CODPROGVIAGEM'], 
@@ -139,16 +139,34 @@ def main(argv):
         x_end=dfTrips['HORCHEGADACENTRAL'], 
         y=dfTrips['MIXERTRUCKINDEX'], 
         color=dfTrips['CODPROGRAMACAO'], 
-        #hover_name='CODPROGVIAGEM',
-        #hover_data=['CODVEICULO', 'CODPROGRAMACAO', 'HORSAIDACENTRAL','HORCHEGADACENTRAL'],
-        #hover_data={ 'HORSAIDACENTRAL': '|%A, %d. %B %Y %I:%M%p', 'FINAL': True, 'HORCHEGADACENTRAL': False, 'CODPROGRAMACAO': True, 'CODVEICULO': True },
         hover_data={ 'BEGIN': True, 'FINAL': True, 
             'HORSAIDACENTRAL': False, 'HORCHEGADACENTRAL': False, 
             'CODPROGRAMACAO': True, 'CODVEICULO': True, 'CODPROGVIAGEM': True },
-        title="Profit/Loss = " + str(totalProfit) + ' and Total MT = ' + str(len(mixerTrucks)))
+        title='Real: Profit/Loss = ' + str(totalProfit) + ' and Total MT = ' + str(len(mixerTrucks)))
     fig.update_yaxes(autorange='reversed')
     fig.update_layout(title_font_size=42, font_size=18, title_font_family='Arial')
-    plotly.offline.plot(fig, filename='TripsOverviewGantReal.html')
+    plotly.offline.plot(fig, filename=basePath + '\\RealGant_' + dataFolder + '.html')
+
+    googleApiKeyPathFile = 'C:\GoogleApiKey\key.txt'
+    fileGmapsKey = open(googleApiKeyPathFile, 'r') 
+    lines = fileGmapsKey.readlines()
+    googleMapsApiKey = lines[0]
+
+    gmap = gmplot.GoogleMapPlotter(loadingPlaces[0].LATITUDE_FILIAL, loadingPlaces[0].LONGITUDE_FILIAL, 11)
+
+    for delivery in deliveries:
+        loadingPlace = next((lp for lp in loadingPlaces if lp.CODCENTCUS == delivery.CODCENTCUSVIAGEM), None)
+        gmap.marker(loadingPlace.LATITUDE_FILIAL, loadingPlace.LONGITUDE_FILIAL, color='yellow', title='', label='Loading Place')
+        gmap.marker(delivery.LATITUDE_OBRA, delivery.LONGITUDE_OBRA, color='cornflowerblue', 
+            label=str(delivery.CODPROGRAMACAO))
+        gmap.plot([loadingPlace.LATITUDE_FILIAL, delivery.LATITUDE_OBRA], 
+            [loadingPlace.LONGITUDE_FILIAL, delivery.LONGITUDE_OBRA],  
+           'cornflowerblue', edge_width = 2.5)
+
+    gmap.apikey = googleMapsApiKey
+    gmap.draw(basePath + '\\RealMap_' + dataFolder + '.html')
+
+    #haversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
