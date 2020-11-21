@@ -2,6 +2,7 @@
 using GeoCoordinatePortable;
 using Heuristics.Entities;
 using Heuristics.Entities.MapsGoogle;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -16,16 +17,24 @@ namespace Heuristics
         {
             string instanceName = "BH-10-01-2020\\";
             string folderPath = "C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\" + instanceName;
-            float FIXED_MIXED_TRUCK_CAPACIT_M3 = 10;
-            float FIXED_MIXED_TRUCK_COST = 50;
+            double DEFAULT_DIESEL_COST = 3.5;
+            double DEFAULT_RMC_COST = 150;
+            double FIXED_MIXED_TRUCK_COST = 50;
+            double FIXED_MIXED_TRUCK_CAPACIT_M3 = 10;
+            double FIXED_L_PER_KM = 27.5 / 100;
+            int FIXED_LOADING_TIME = 8;
+            int FIXED_CUSTOMER_FLOW_RATE = 3;
 
-            IEnumerable<CsvRow> records;
+            #region Read Csv File
+            List<CsvRow> records;
             using (var reader = new System.IO.StreamReader(folderPath + "Trips.csv"))
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
-                records = csv.GetRecords<CsvRow>();
+                records = csv.GetRecords<CsvRow>().ToList();
             }
+            #endregion
 
+            #region Get loading places, mixer trucks, orders and deliveries form csv
             int loadingPlaceIndex = 1;
             List<LoadingPlace> loadingPlaces = new List<LoadingPlace>();
             int mixerTruckIndex = 1;
@@ -35,7 +44,7 @@ namespace Heuristics
             foreach (CsvRow csvRow in records)
             {
                 LoadingPlace loadingPlace = loadingPlaces.FirstOrDefault(lp => lp.CODCENTCUS == csvRow.CODCENTCUSVIAGEM);
-                if (loadingPlace.Equals(default(LoadingPlace)))
+                if (loadingPlace == null)
                 {
                     loadingPlace = new LoadingPlace()
                     {
@@ -79,6 +88,7 @@ namespace Heuristics
                         VLRVENDA = csvRow.VLRVENDA,
                         Coordinates = new GeoCoordinate(csvRow.LATITUDE_OBRA, csvRow.LONGITUDE_OBRA)
                     };
+                    orders.Add(order);
                 }
 
                 Delivery delivery = deliveries.FirstOrDefault(d => d.CODPROGVIAGEM == csvRow.CODPROGVIAGEM);
@@ -91,38 +101,32 @@ namespace Heuristics
                         CODPROGVIAGEM = csvRow.CODPROGVIAGEM,
                         CODCENTCUSVIAGEM = csvRow.CODCENTCUSVIAGEM,
                         VLRTOTALNF = csvRow.VLRTOTALNF,
-                        VALVOLUMEPROG = csvRow.VALTOTALPROGRAMACAO,
+                        VALVOLUMEPROG = csvRow.VALVOLUMEPROG,
                         CODTRACO = csvRow.CODTRACO,
                         CUSVAR = csvRow.CUSVAR,
+                        VLRVENDA = csvRow.VLRVENDA,
                         LATITUDE_OBRA = csvRow.LATITUDE_OBRA,
                         LONGITUDE_OBRA = csvRow.LONGITUDE_OBRA
                     };
+                    deliveries.Add(delivery);
                 }
             }
-            List<DirectionsResult> directionsResults;
+            #endregion
+
+            #region Read traffic information per latitude and longitude
+            TrafficInfo trafficInfo;
             using (StreamReader r = new StreamReader(folderPath + "DirectionsResultsStored.json"))
             {
                 string json = r.ReadToEnd();
-                directionsResults = JsonSerializer.Deserialize<List<DirectionsResult>>(json);
+                trafficInfo = JsonSerializer.Deserialize<TrafficInfo>(json);
             }
-            foreach (Order order in orders)
-            {
-                order.TRIPS = deliveries.Where(d => d.CODPROGRAMACAO == order.CODPROGRAMACAO).ToList();
-                foreach(LoadingPlace loadingPlace in loadingPlaces)
-                {
-                    DirectionsResult directionsResult = directionsResults.FirstOrDefault(dr =>
-                        dr.OriginLatitude == loadingPlace.LATITUDE_FILIAL &&
-                        dr.OriginLongitude == loadingPlace.LONGITUDE_FILIAL &&
-                        dr.DestinyLatitude == order.LATITUDE_OBRA &&
-                        dr.DestinyLongitude == order.LONGITUDE_OBRA &&
-                        dr.Hour == order.HORSAIDACENTRAL.Hour);
-                    loadingPlace.DISTANCE_HAVERSINE = loadingPlace.Coordinates.GetDistanceTo(order.Coordinates);
-                    loadingPlace.TRAVELTIME_HAVERSINE = (int)(2 * loadingPlace.DISTANCE_HAVERSINE);
-                    loadingPlace.DISTANCE_GOOGLEMAPS = directionsResult.Distance;
-                    loadingPlace.TRAVELTIME_GOOGLEMAPS = directionsResult.TravelTime;
-                    order.LOADINGPLACES_INFO.Add(loadingPlace);
-                }
-            }
+            #endregion
+
+            SimpleHeuristicHaversine.Execute(folderPath, loadingPlaces, mixerTrucks,
+            orders, deliveries, trafficInfo,
+            DEFAULT_DIESEL_COST, DEFAULT_RMC_COST, FIXED_MIXED_TRUCK_COST,
+            FIXED_MIXED_TRUCK_CAPACIT_M3, FIXED_L_PER_KM, FIXED_LOADING_TIME,
+            FIXED_CUSTOMER_FLOW_RATE);
 
         }
     }

@@ -15,7 +15,8 @@ namespace Heuristics.Entities
         public double LONGITUDE_OBRA;
         public double VLRVENDA;
         public List<Delivery> TRIPS;
-        public List<LoadingPlace> LOADINGPLACES_INFO;
         public GeoCoordinate Coordinates;
+        public double LoadingPlaceCostHaversine;
+        public double LoadingPlaceCostGoogleMaps;
     }
 }
