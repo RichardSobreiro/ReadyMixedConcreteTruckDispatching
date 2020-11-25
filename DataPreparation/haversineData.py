@@ -46,10 +46,11 @@ def haversineData(mixerTrucks, loadingPlaces, deliveries, orders,
             distance = hs.haversine(loadingPlaceLatLong, constructionSiteLatLong)
             if dl.CUSVAR == 0 or dl.CUSVAR == None:
                 dl.CUSVAR = DEFAULT_RMC_COST
-            cost = dl.CUSVAR + (distance * FIXED_L_PER_KM * 2 * DEFAULT_DIESEL_COST)
+            cost = dl.CUSVAR * int(dl.VALVOLUMEPROG) + (distance * FIXED_L_PER_KM * 2 * DEFAULT_DIESEL_COST)
+            c[i][j] = round(cost)
+            r[j] = int(dl.VLRVENDA) * int(dl.VALVOLUMEPROG)
             dcod[j] = dl.CODPROGVIAGEM
             odcod[j] = dl.CODPROGRAMACAO
-            c[i][j] = round(cost * int(dl.VALVOLUMEPROG))
             t[i][j] = round(distance * 2)
             loadingPlace = next((lp for lp in loadingPlaces if lp.CODCENTCUS == mt.CODCENTCUS), None)
             lpmt[i] = int(loadingPlace.index)
@@ -63,7 +64,6 @@ def haversineData(mixerTrucks, loadingPlaces, deliveries, orders,
             else:
                 dmbs[j] = 1
             dmt[i][j] = 1
-            r[j] = int(dl.VLRVENDA) * int(dl.VALVOLUMEPROG)
             ld = 8
             if fdno == 0 and dl.CODPROGRAMACAO == NEW_ORDER_ID:
                 fdno = j
@@ -73,7 +73,7 @@ def haversineData(mixerTrucks, loadingPlaces, deliveries, orders,
     
     lpmt = lpmt.astype(np.int32)
 
-    datfile = open(basePath + '\\RMCTDP_Simple_Ref.dat', 'w+')
+    datfile = open(basePath + '\\RMCTDP_Simple_Ref_Haversine.dat', 'w+')
 
     datfile.write('nLP = ' + str(nLP) + ';\n')
     datfile.write('nMT = ' + str(nMT) + ';\n')        

@@ -9,7 +9,7 @@ namespace Heuristics.Entities.MapsGoogle
         public class DirectionsResult
         {
             public double Distance { get; set; }
-            public int TravelTime { get; set; }
+            public double TravelTime { get; set; }
             public double OriginLatitude { get; set; }
             public double OriginLongitude { get; set; }
             public double DestinyLatitude { get; set; }

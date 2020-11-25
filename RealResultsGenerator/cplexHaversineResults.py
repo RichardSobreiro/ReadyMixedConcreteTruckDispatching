@@ -9,7 +9,9 @@ import plotly
 
 from gmplot import *
 
-def haversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces):
+from classes import LoadingPlace, MixerTruck, Order, Delivery
+
+def cplexHaversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces):
     tripsJson = 0
     with open(basePath + '\\ResultHaversine.json') as data_file:    
         tripsJson = json.load(data_file)
@@ -21,10 +23,12 @@ def haversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, loading
 
     df['LoadingBeginTime'] = df['LoadingBeginTime'].astype(int)
     df['ReturnTime'] = df['ReturnTime'].astype(int)
+    df['ServiceTime'] = df['ServiceTime'].astype(int)
 
     df.loc[df['LoadingBeginTime'] < 0, 'LoadingBeginTime'] = (df['LoadingBeginTime'] - 20)
     
     mixerTrucks = []
+    totalProfit = 0
     for index, row in df.iterrows():
         mixerTruck = next((cod for cod in mixerTrucks if cod == row['MixerTruck']), None)
         if mixerTruck == None:
@@ -33,14 +37,20 @@ def haversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, loading
         df.at[index, 'LoadingBeginTime'] = row['LoadingBeginTime']
         row['ReturnTime'] = startTime + timedelta(minutes=row['ReturnTime'])
         df.at[index, 'ReturnTime'] = row['ReturnTime']
+        row['ServiceTime'] = startTime + timedelta(minutes=row['ServiceTime'])
+        df.at[index, 'ServiceTime'] = row['ServiceTime']
+        totalProfit += float(row['Revenue']) - float(row['TravelCost'])
 
     df['ReturnTime'] = pd.to_datetime(df['ReturnTime'])
     df['LoadingBeginTime'] = pd.to_datetime(df['LoadingBeginTime'])
+    df['ServiceTime'] = pd.to_datetime(df['ServiceTime'])
 
     df['FINAL'] = ''
     df['BEGIN'] = ''
+    df['Arrival'] = ''
     df['FINAL'] = df['ReturnTime'].dt.strftime("%A, %d. %B %Y %I:%M%p")
     df['BEGIN'] = df['LoadingBeginTime'].dt.strftime("%A, %d. %B %Y %I:%M%p")
+    df['Arrival'] = df['ServiceTime'].dt.strftime("%A, %d. %B %Y %I:%M%p")
 
     fig = px.timeline(df, 
         x_start=df['LoadingBeginTime'], 
@@ -49,11 +59,12 @@ def haversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, loading
         color=df['OrderId'], 
         hover_data={ 'BEGIN': True, 'FINAL': True, 
             'LoadingBeginTime': False, 'ReturnTime': False, 
-            'CodOrder': True, 'MixerTruck': True, 'CodDelivery': True },
-        title='Haversine: Profit/Loss = 62042.86 and Total MT = ' + str(len(mixerTrucks)))
+            'CodOrder': True, 'MixerTruck': True, 'CodDelivery': True, 'Arrival': True,
+            'DurationOfService': True, 'TravelTime': True, 'LoadingPlant': True },
+        title='Haversine: Profit/Loss = ' + str(totalProfit) + ' and Total MT = ' + str(len(mixerTrucks)))
     fig.update_yaxes(autorange='reversed')
     fig.update_layout(title_font_size=42, font_size=18, title_font_family='Arial')
-    plotly.offline.plot(fig, filename=basePath + '\\HaversineGant_' + dataFolder + '.html')
+    plotly.offline.plot(fig, filename=basePath + '\\CplexHaversineGant_' + dataFolder + '.html')
 
     gmap = gmplot.GoogleMapPlotter(loadingPlaces[0].LATITUDE_FILIAL, loadingPlaces[0].LONGITUDE_FILIAL, 11)
 
@@ -69,4 +80,4 @@ def haversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, loading
            'cornflowerblue', edge_width = 2.5)
 
     gmap.apikey = googleMapsApiKey
-    gmap.draw(basePath + '\\RealMapHaversine_' + dataFolder + '.html')
+    gmap.draw(basePath + '\\CplexHaversineMap_' + dataFolder + '.html')

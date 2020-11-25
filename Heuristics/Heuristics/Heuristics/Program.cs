@@ -15,7 +15,7 @@ namespace Heuristics
     {
         static void Main(string[] args)
         {
-            string instanceName = "BH-10-01-2020\\";
+            string instanceName = "SP-13-06-2019\\";
             string folderPath = "C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\" + instanceName;
             double DEFAULT_DIESEL_COST = 3.5;
             double DEFAULT_RMC_COST = 150;
@@ -128,6 +128,11 @@ namespace Heuristics
             FIXED_MIXED_TRUCK_CAPACIT_M3, FIXED_L_PER_KM, FIXED_LOADING_TIME,
             FIXED_CUSTOMER_FLOW_RATE);
 
+            //SimpleHeuristicGoogleMaps.Execute(folderPath, loadingPlaces, mixerTrucks,
+            //orders, deliveries, trafficInfo,
+            //DEFAULT_DIESEL_COST, DEFAULT_RMC_COST, FIXED_MIXED_TRUCK_COST,
+            //FIXED_MIXED_TRUCK_CAPACIT_M3, FIXED_L_PER_KM, FIXED_LOADING_TIME,
+            //FIXED_CUSTOMER_FLOW_RATE);
         }
     }
 }

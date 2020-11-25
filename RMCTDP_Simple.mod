@@ -50,7 +50,7 @@ dvar boolean sbf[D][D]; // Window i begins first than window j
 
 execute
 {
-	cplex.epgap=0.02;
+	cplex.epgap=0.06;
 	cplex.tilim=28800;
 }
 

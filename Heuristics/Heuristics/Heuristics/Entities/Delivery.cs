@@ -23,6 +23,7 @@ namespace Heuristics.Entities
         public DateTime ArrivalTimeAtConstruction;
         public DateTime DepartureTimeAtConstruction;
         public DateTime ArrivalTimeAtLoadingPlace;
+        public int Lateness;
         public int CODVEICULO;
 
     }

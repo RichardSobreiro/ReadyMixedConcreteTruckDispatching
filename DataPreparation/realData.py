@@ -60,8 +60,8 @@ def realData(mixerTrucks, loadingPlaces, deliveries, orders,
                     loadingPlace.DISTANCE = round(float(directions_result[0]['legs'][0]['distance']['value'])/1000, 1)
                     loadingPlace.TRAVELTIME = int(directions_result[0]['legs'][0]['duration']['value']/60)
                     directionResult = DirectionResult()
-                    directionResult.Distance = loadingPlace.DISTANCE
-                    directionResult.TravelTime = loadingPlace.TRAVELTIME
+                    directionResult.Distance = int(loadingPlace.DISTANCE)
+                    directionResult.TravelTime = int(loadingPlace.TRAVELTIME)
                     directionResult.OriginLatitude = float(loadingPlace.LATITUDE_FILIAL)
                     directionResult.OriginLongitude = float(loadingPlace.LONGITUDE_FILIAL)
                     directionResult.DestinyLatitude = float(order.LATITUDE_OBRA)
@@ -129,10 +129,11 @@ def realData(mixerTrucks, loadingPlaces, deliveries, orders,
                 distance = loadingPlace.DISTANCE
                 if dl.CUSVAR == 0 or dl.CUSVAR == None:
                     dl.CUSVAR = DEFAULT_RMC_COST
-                cost = dl.CUSVAR + (distance * FIXED_L_PER_KM * 2 * DEFAULT_DIESEL_COST)
+                cost = dl.CUSVAR * int(dl.VALVOLUMEPROG) + (distance * FIXED_L_PER_KM * 2 * DEFAULT_DIESEL_COST)
+                c[i][j] = round(cost)
+                r[j] = int(dl.VLRVENDA) * int(dl.VALVOLUMEPROG)
                 dcod[j] = dl.CODPROGVIAGEM
                 odcod[j] = dl.CODPROGRAMACAO
-                c[i][j] = round(cost * int(dl.VALVOLUMEPROG))
                 t[i][j] = loadingPlace.TRAVELTIME
                 lpmt[i] = int(loadingPlace.index)
                 d[j] = dl.VALVOLUMEPROG
@@ -145,7 +146,6 @@ def realData(mixerTrucks, loadingPlaces, deliveries, orders,
                 else:
                     dmbs[j] = 1
                 dmt[i][j] = 1
-                r[j] = int(dl.VLRVENDA) * int(dl.VALVOLUMEPROG)
                 ld = 8
                 if fdno == 0 and dl.CODPROGRAMACAO == NEW_ORDER_ID:
                     fdno = j
@@ -155,7 +155,7 @@ def realData(mixerTrucks, loadingPlaces, deliveries, orders,
     
     lpmt = lpmt.astype(np.int32)
 
-    datfile = open(basePath + '\\RMCTDP_Simple_Ref_Real.dat', 'w+')
+    datfile = open(basePath + '\\RMCTDP_Simple_Ref_GoogleMaps.dat', 'w+')
 
     datfile.write('nLP = ' + str(nLP) + ';\n')
     datfile.write('nMT = ' + str(nMT) + ';\n')        

@@ -8,9 +8,9 @@ using System.Text.Json;
 
 namespace Heuristics
 {
-    public static class SimpleHeuristicHaversine
+    class SimpleHeuristicGoogleMaps
     {
-        public static void Execute(string folderPath, List<LoadingPlace> loadingPlaces, List<MixerTruck> mixerTrucks, 
+        public static void Execute(string folderPath, List<LoadingPlace> loadingPlaces, List<MixerTruck> mixerTrucks,
             List<Order> orders, List<Delivery> deliveries, TrafficInfo trafficInfo,
             double DEFAULT_DIESEL_COST, double DEFAULT_RMC_COST, double FIXED_MIXED_TRUCK_COST,
             double FIXED_MIXED_TRUCK_CAPACIT_M3, double FIXED_L_PER_KM, int FIXED_LOADING_TIME,
@@ -29,30 +29,48 @@ namespace Heuristics
             foreach (Order order in orders)
             {
                 order.TRIPS = deliveries.Where(d => d.CODPROGRAMACAO == order.CODPROGRAMACAO).ToList();
-                order.LoadingPlaceCostHaversine = double.MaxValue;
                 order.LoadingPlaceCostGoogleMaps = double.MaxValue;
                 foreach (LoadingPlace loadingPlace in loadingPlaces)
                 {
-                    double loadingPlaceCostHaversine = 0;
+                    double loadingPlaceCostGoogleMaps = 0;
                     foreach (Delivery delivery in order.TRIPS)
                     {
+                        TrafficInfo.DirectionsResult directionsResult = trafficInfo.DirectionsResults.FirstOrDefault(dr =>
+                            Math.Round(dr.OriginLatitude, 6) == loadingPlace.LATITUDE_FILIAL &&
+                            Math.Round(dr.OriginLongitude, 6) == loadingPlace.LONGITUDE_FILIAL &&
+                            (Math.Round(dr.DestinyLatitude, 8) >= (order.LATITUDE_OBRA - .00000002) ||
+                                Math.Round(dr.DestinyLatitude, 8) <= (order.LATITUDE_OBRA + .00000002)) &&
+                            (Math.Round(dr.DestinyLongitude, 8) >= (order.LONGITUDE_OBRA - .00000002) ||
+                                Math.Round(dr.DestinyLongitude, 8) <= (order.LONGITUDE_OBRA + .00000002)) &&
+                            dr.Hour == delivery.EndLoadingTime.Hour);
+                        if(directionsResult == null)
+                        {
+                            directionsResult = trafficInfo.DirectionsResults.FirstOrDefault(dr =>
+                            Math.Round(dr.OriginLatitude, 6) == loadingPlace.LATITUDE_FILIAL &&
+                            Math.Round(dr.OriginLongitude, 6) == loadingPlace.LONGITUDE_FILIAL &&
+                            (Math.Round(dr.DestinyLatitude, 8) >= (order.LATITUDE_OBRA - .00000002) ||
+                                Math.Round(dr.DestinyLatitude, 8) <= (order.LATITUDE_OBRA + .00000002)) &&
+                            (Math.Round(dr.DestinyLongitude, 8) >= (order.LONGITUDE_OBRA - .00000002) ||
+                                Math.Round(dr.DestinyLongitude, 8) <= (order.LONGITUDE_OBRA + .00000002)));
+                        }
                         LoadingPlace loadingPlaceInfo = loadingPlace.Clone();
-                        loadingPlaceInfo.DISTANCE_HAVERSINE = Math.Round(loadingPlaceInfo.Coordinates.GetDistanceTo(order.Coordinates)/1000, 1);
-                        loadingPlaceInfo.TRAVELTIME_HAVERSINE = (int)(2 * loadingPlaceInfo.DISTANCE_HAVERSINE);
+                        loadingPlaceInfo.DISTANCE_GOOGLEMAPS = directionsResult.Distance;
+                        loadingPlaceInfo.TRAVELTIME_GOOGLEMAPS = (int)directionsResult.TravelTime;
                         if (delivery.CUSVAR <= 0)
                             delivery.CUSVAR = DEFAULT_RMC_COST;
-                        loadingPlaceInfo.CostHaversine = (delivery.CUSVAR * delivery.VALVOLUMEPROG) + (loadingPlaceInfo.DISTANCE_HAVERSINE * FIXED_L_PER_KM * 2 * DEFAULT_DIESEL_COST);
-                        loadingPlaceCostHaversine += loadingPlaceInfo.CostHaversine;
+                        loadingPlaceInfo.CostGoogleMaps = (delivery.CUSVAR * delivery.VALVOLUMEPROG) + 
+                            (loadingPlaceInfo.DISTANCE_GOOGLEMAPS * FIXED_L_PER_KM * 2 * DEFAULT_DIESEL_COST);
+                        loadingPlaceCostGoogleMaps += loadingPlaceInfo.CostGoogleMaps;
                         delivery.LOADINGPLACES_INFO.Add(loadingPlaceInfo);
                     }
-                    if (loadingPlaceCostHaversine < order.LoadingPlaceCostHaversine && loadingPlace.MixerTrucks.Count > 0)
+                    if (loadingPlaceCostGoogleMaps < order.LoadingPlaceCostGoogleMaps && loadingPlace.MixerTrucks.Count > 0)
                     {
                         order.CODCENTCUS = loadingPlace.CODCENTCUS;
                         for (int i = 0; i < order.TRIPS.Count; i++)
                             order.TRIPS[i].CODCENTCUSVIAGEM = loadingPlace.CODCENTCUS;
-                        order.LoadingPlaceCostHaversine = loadingPlaceCostHaversine;
+                        order.LoadingPlaceCostGoogleMaps = loadingPlaceCostGoogleMaps;
                     }
-                }
+            }
             }
             List<Delivery> deliveryResults = new List<Delivery>();
             foreach (LoadingPlace loadingPlace in loadingPlaces)
@@ -61,12 +79,11 @@ namespace Heuristics
                     lps => lps.CODCENTCUS != loadingPlace.CODCENTCUS &&
                     lps.LATITUDE_FILIAL == loadingPlace.LATITUDE_FILIAL &&
                     lps.LONGITUDE_FILIAL == loadingPlace.LONGITUDE_FILIAL);
-                loadingPlace.MixerTrucks = mixerTrucks.Where(mt => mt.CODCENTCUS == loadingPlace.CODCENTCUS ||
-                    (loadingPlaceSister != null && mt.CODCENTCUS == loadingPlaceSister.CODCENTCUS)).ToList();
-
                 List<Delivery> deliveriesOfThisLoadingPlace = orders.
                     Where(o => o.CODCENTCUS == loadingPlace.CODCENTCUS).
                     SelectMany(o => o.TRIPS).OrderBy(d => d.HORCHEGADAOBRA).ToList();
+                loadingPlace.MixerTrucks = mixerTrucks.Where(mt => mt.CODCENTCUS == loadingPlace.CODCENTCUS ||
+                    (loadingPlaceSister != null && mt.CODCENTCUS == loadingPlaceSister.CODCENTCUS)).ToList();
                 for (int i = 0; i < deliveriesOfThisLoadingPlace.Count; i++)
                 {
                     if (deliveryResults.Any(d => d.CODPROGVIAGEM == deliveriesOfThisLoadingPlace[i].CODPROGVIAGEM))
@@ -76,7 +93,7 @@ namespace Heuristics
                     deliveriesOfThisLoadingPlace[i].ArrivalTimeAtConstruction = deliveriesOfThisLoadingPlace[i].HORCHEGADAOBRA;
                     deliveriesOfThisLoadingPlace[i].BeginLoadingTime =
                         deliveriesOfThisLoadingPlace[i].ArrivalTimeAtConstruction.
-                            AddMinutes(-loadingPlaceInfo.TRAVELTIME_HAVERSINE).
+                            AddMinutes(-loadingPlaceInfo.TRAVELTIME_GOOGLEMAPS).
                             AddMinutes(-FIXED_LOADING_TIME);
                     deliveriesOfThisLoadingPlace[i].EndLoadingTime =
                         deliveriesOfThisLoadingPlace[i].BeginLoadingTime.AddMinutes(FIXED_LOADING_TIME);
@@ -84,20 +101,20 @@ namespace Heuristics
                         deliveriesOfThisLoadingPlace[i].ArrivalTimeAtConstruction.
                             AddMinutes((int)(FIXED_CUSTOMER_FLOW_RATE * deliveriesOfThisLoadingPlace[i].VALVOLUMEPROG));
                     deliveriesOfThisLoadingPlace[i].ArrivalTimeAtLoadingPlace =
-                        deliveriesOfThisLoadingPlace[i].DepartureTimeAtConstruction.AddMinutes(loadingPlaceInfo.TRAVELTIME_HAVERSINE);
-                    
+                        deliveriesOfThisLoadingPlace[i].DepartureTimeAtConstruction.AddMinutes(loadingPlaceInfo.TRAVELTIME_GOOGLEMAPS);
+
                     List<MixerTruck> mixerTrucksAvailableInUse = loadingPlace.MixerTrucks.Where(mt =>
                         mt.EndOfTheLastService != DateTime.MinValue &&
                         mt.EndOfTheLastService <= deliveriesOfThisLoadingPlace[i].BeginLoadingTime).ToList();
                     int codVeiculoSelected = 0;
-                    if(mixerTrucksAvailableInUse.Count > 0)
+                    if (mixerTrucksAvailableInUse.Count > 0)
                     {
                         TimeSpan idleTime = TimeSpan.MaxValue;
-                        for(int k = 0; k < mixerTrucksAvailableInUse.Count; k++)
+                        for (int k = 0; k < mixerTrucksAvailableInUse.Count; k++)
                         {
                             TimeSpan currentIdleTime = deliveriesOfThisLoadingPlace[i].BeginLoadingTime.
                                 Subtract(mixerTrucksAvailableInUse[k].EndOfTheLastService);
-                            if(currentIdleTime < idleTime)
+                            if (currentIdleTime < idleTime)
                             {
                                 idleTime = currentIdleTime;
                                 codVeiculoSelected = mixerTrucksAvailableInUse[k].index;
@@ -111,32 +128,29 @@ namespace Heuristics
                             mt.EndOfTheLastService == DateTime.MinValue);
                         codVeiculoSelected = mixerTruckAvailableNotInUse != null ? mixerTruckAvailableNotInUse.index : 0;
                         TimeSpan lateness = TimeSpan.MaxValue;
-                        if(codVeiculoSelected == 0)
+                        if (codVeiculoSelected == 0)
                         {
-                            foreach(MixerTruck mixerTruck in loadingPlace.MixerTrucks)
+                            foreach (MixerTruck mixerTruck in loadingPlace.MixerTrucks)
                             {
                                 TimeSpan currentLateness =
                                     mixerTruck.EndOfTheLastService.Subtract(deliveriesOfThisLoadingPlace[i].BeginLoadingTime);
-                                if(currentLateness < lateness)
+                                if (currentLateness < lateness)
                                 {
                                     lateness = currentLateness;
                                     codVeiculoSelected = mixerTruck.index;
                                 }
                             }
-                            if(codVeiculoSelected != 0)
-                            {
-                                deliveriesOfThisLoadingPlace[i].Lateness = (int)lateness.TotalMinutes;
-                                deliveriesOfThisLoadingPlace[i].BeginLoadingTime = 
-                                    deliveriesOfThisLoadingPlace[i].BeginLoadingTime.AddMinutes(lateness.TotalMinutes);
-                                deliveriesOfThisLoadingPlace[i].EndLoadingTime =
-                                    deliveriesOfThisLoadingPlace[i].EndLoadingTime.AddMinutes(lateness.TotalMinutes);
-                                deliveriesOfThisLoadingPlace[i].ArrivalTimeAtConstruction =
-                                    deliveriesOfThisLoadingPlace[i].ArrivalTimeAtConstruction.AddMinutes(lateness.TotalMinutes);
-                                deliveriesOfThisLoadingPlace[i].DepartureTimeAtConstruction =
-                                    deliveriesOfThisLoadingPlace[i].DepartureTimeAtConstruction.AddMinutes(lateness.TotalMinutes);
-                                deliveriesOfThisLoadingPlace[i].ArrivalTimeAtLoadingPlace =
-                                    deliveriesOfThisLoadingPlace[i].ArrivalTimeAtLoadingPlace.AddMinutes(lateness.TotalMinutes);
-                            }
+                            deliveriesOfThisLoadingPlace[i].Lateness = (int)lateness.TotalMinutes;
+                            deliveriesOfThisLoadingPlace[i].BeginLoadingTime =
+                                deliveriesOfThisLoadingPlace[i].BeginLoadingTime.AddMinutes(lateness.TotalMinutes);
+                            deliveriesOfThisLoadingPlace[i].EndLoadingTime =
+                                deliveriesOfThisLoadingPlace[i].EndLoadingTime.AddMinutes(lateness.TotalMinutes);
+                            deliveriesOfThisLoadingPlace[i].ArrivalTimeAtConstruction =
+                                deliveriesOfThisLoadingPlace[i].ArrivalTimeAtConstruction.AddMinutes(lateness.TotalMinutes);
+                            deliveriesOfThisLoadingPlace[i].DepartureTimeAtConstruction =
+                                deliveriesOfThisLoadingPlace[i].DepartureTimeAtConstruction.AddMinutes(lateness.TotalMinutes);
+                            deliveriesOfThisLoadingPlace[i].ArrivalTimeAtLoadingPlace =
+                                deliveriesOfThisLoadingPlace[i].ArrivalTimeAtLoadingPlace.AddMinutes(lateness.TotalMinutes);
                         }
                     }
                     MixerTruck mixerTruckSelected = loadingPlace.MixerTrucks.FirstOrDefault(mt =>
@@ -172,11 +186,11 @@ namespace Heuristics
                     ServiceTime = (delivery.ArrivalTimeAtConstruction.Hour * 60) + delivery.ArrivalTimeAtConstruction.Minute,
                     ReturnTime = (delivery.ArrivalTimeAtLoadingPlace.Hour * 60) + delivery.ArrivalTimeAtLoadingPlace.Minute,
                     LoadingPlant = delivery.CODCENTCUSVIAGEM,
-                    Revenue = (int)((delivery.VLRVENDA * delivery.VALVOLUMEPROG) - loadingPlaceInfo.CostHaversine),
+                    Revenue = (int)((delivery.VLRVENDA * delivery.VALVOLUMEPROG) - loadingPlaceInfo.CostGoogleMaps),
                     BeginTimeWindow = (delivery.BeginLoadingTime.Hour * 60) + delivery.BeginLoadingTime.Minute,
                     EndTimeWindow = (delivery.ArrivalTimeAtLoadingPlace.Hour * 60) + delivery.ArrivalTimeAtLoadingPlace.Minute,
-                    TravelTime = loadingPlaceInfo.TRAVELTIME_HAVERSINE,
-                    TravelCost = (int)loadingPlaceInfo.CostHaversine,
+                    TravelTime = loadingPlaceInfo.TRAVELTIME_GOOGLEMAPS,
+                    TravelCost = (int)loadingPlaceInfo.CostGoogleMaps,
                     DurationOfService = (int)(FIXED_CUSTOMER_FLOW_RATE * delivery.VALVOLUMEPROG),
                     IfDeliveryMustBeServed = 1,
                     CodDelivery = delivery.CODPROGVIAGEM,
@@ -186,7 +200,7 @@ namespace Heuristics
             }
             result.objective = (int)(result.trips.Sum(rt => rt.Revenue) - (result.numberOfMixerTrucks * FIXED_MIXED_TRUCK_COST));
             string jsonString = JsonSerializer.Serialize(result);
-            File.WriteAllText(folderPath + "\\ResultHaversineSimpleHeuristic.json", jsonString);
+            File.WriteAllText(folderPath + "\\ResultGoogleMapsSimpleHeuristic.json", jsonString);
         }
     }
 }
