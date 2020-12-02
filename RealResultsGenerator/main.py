@@ -12,7 +12,7 @@ from cplexHaversineResults import cplexHaversineResults
 from simpleHeuristicResults import simpleHeuristicResults
 
 def main(argv):
-    dataFolder = 'GDE-TIJUCAS-13-06-2019'
+    dataFolder = 'SP-13-06-2019'
     basePath = 'C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\' + dataFolder
     DEFAULT_DIESEL_COST = 3.5
     FIXED_L_PER_KM = 27.5/100
@@ -20,11 +20,13 @@ def main(argv):
 
     googleMapsApiKey, deliveries, loadingPlaces, mixerTrucks = realResults(dataFolder, basePath, DEFAULT_DIESEL_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_COST)
 
-    cplexHaversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces)
+    #cplexHaversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces)
 
-    simpleHeuristicResults('Haversine', basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces)
+    #simpleHeuristicResults('HaversineSimple', basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces)
 
-    simpleHeuristicResults('GoogleMaps', basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces)
+    #simpleHeuristicResults('GoogleMapsSimple', basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces)
+
+    simpleHeuristicResults('NoTruckLimitation', basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces)
 
 if __name__ == '__main__':
     main(sys.argv[1:])

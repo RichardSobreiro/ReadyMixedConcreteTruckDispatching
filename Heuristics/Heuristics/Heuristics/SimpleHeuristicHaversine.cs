@@ -15,7 +15,7 @@ namespace Heuristics
             double DEFAULT_DIESEL_COST, double DEFAULT_RMC_COST, double FIXED_MIXED_TRUCK_COST,
             double FIXED_MIXED_TRUCK_CAPACIT_M3, double FIXED_L_PER_KM, int FIXED_LOADING_TIME,
             int FIXED_CUSTOMER_FLOW_RATE)
-        {
+        {/*
             foreach (LoadingPlace loadingPlace in loadingPlaces)
             {
                 LoadingPlace loadingPlaceSister = loadingPlaces.FirstOrDefault(
@@ -187,6 +187,7 @@ namespace Heuristics
             result.objective = (int)(result.trips.Sum(rt => rt.Revenue) - (result.numberOfMixerTrucks * FIXED_MIXED_TRUCK_COST));
             string jsonString = JsonSerializer.Serialize(result);
             File.WriteAllText(folderPath + "\\ResultHaversineSimpleHeuristic.json", jsonString);
+        */
         }
     }
 }

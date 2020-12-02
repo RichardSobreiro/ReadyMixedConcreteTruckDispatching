@@ -54,6 +54,16 @@ namespace Heuristics
                         LONGITUDE_FILIAL = csvRow.LONGITUDE_FILIAL,
                         Coordinates = new GeoCoordinate(csvRow.LATITUDE_FILIAL, csvRow.LONGITUDE_FILIAL)
                     };
+                    if(loadingPlace.CODCENTCUS == 17050 || loadingPlace.CODCENTCUS == 17250)
+                    {
+                        loadingPlace.LATITUDE_FILIAL = -23.689984;
+                        loadingPlace.LONGITUDE_FILIAL = -46.602776;
+                    }
+                    if(loadingPlace.CODCENTCUS == 14050)
+                    {
+                        loadingPlace.LATITUDE_FILIAL = -23.152246;
+                        loadingPlace.LONGITUDE_FILIAL = -45.801311;
+                    }
                     loadingPlaces.Add(loadingPlace);
                     loadingPlaceIndex++;
                 }
@@ -122,17 +132,23 @@ namespace Heuristics
             }
             #endregion
 
-            SimpleHeuristicHaversine.Execute(folderPath, loadingPlaces, mixerTrucks,
-            orders, deliveries, trafficInfo,
-            DEFAULT_DIESEL_COST, DEFAULT_RMC_COST, FIXED_MIXED_TRUCK_COST,
-            FIXED_MIXED_TRUCK_CAPACIT_M3, FIXED_L_PER_KM, FIXED_LOADING_TIME,
-            FIXED_CUSTOMER_FLOW_RATE);
-
-            //SimpleHeuristicGoogleMaps.Execute(folderPath, loadingPlaces, mixerTrucks,
+            //SimpleHeuristicHaversine.Execute(folderPath, loadingPlaces, mixerTrucks,
             //orders, deliveries, trafficInfo,
             //DEFAULT_DIESEL_COST, DEFAULT_RMC_COST, FIXED_MIXED_TRUCK_COST,
             //FIXED_MIXED_TRUCK_CAPACIT_M3, FIXED_L_PER_KM, FIXED_LOADING_TIME,
             //FIXED_CUSTOMER_FLOW_RATE);
+
+            //SimpleHeuristicGoogleMaps.Execute(folderPath, loadingPlaces, mixerTrucks,
+            //    orders, deliveries, trafficInfo,
+            //    DEFAULT_DIESEL_COST, DEFAULT_RMC_COST, FIXED_MIXED_TRUCK_COST,
+            //    FIXED_MIXED_TRUCK_CAPACIT_M3, FIXED_L_PER_KM, FIXED_LOADING_TIME,
+            //    FIXED_CUSTOMER_FLOW_RATE);
+
+            NoTruckLimitationHeuristicGoogleMaps.Execute(folderPath, loadingPlaces, mixerTrucks,
+                orders, deliveries, trafficInfo,
+                DEFAULT_DIESEL_COST, DEFAULT_RMC_COST, FIXED_MIXED_TRUCK_COST,
+                FIXED_MIXED_TRUCK_CAPACIT_M3, FIXED_L_PER_KM, FIXED_LOADING_TIME,
+                FIXED_CUSTOMER_FLOW_RATE);
         }
     }
 }

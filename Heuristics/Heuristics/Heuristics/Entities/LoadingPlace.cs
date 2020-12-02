@@ -8,6 +8,7 @@ namespace Heuristics.Entities
     {
         public int index;
         public int CODCENTCUS;
+        public int CODCENTCUSSISTER;
         public double LATITUDE_FILIAL;
         public double LONGITUDE_FILIAL;
         public double DISTANCE_HAVERSINE;
@@ -19,6 +20,21 @@ namespace Heuristics.Entities
         public double CostGoogleMaps { get; set; }
 
         public List<MixerTruck> MixerTrucks;
+
+        public LoadingPlaceInfo CreateInfo() 
+        {
+            return new LoadingPlaceInfo() 
+            {
+                index = this.index,
+                CODCENTCUS = this.CODCENTCUS,
+                CODCENTCUSSISTER = this.CODCENTCUSSISTER,
+                LATITUDE_FILIAL = this.LATITUDE_FILIAL,
+                LONGITUDE_FILIAL = this.LONGITUDE_FILIAL,
+                Distance = 0,
+                Cost = 0,
+                Deliveries = new List<Delivery>()
+            };
+        }
 
         public LoadingPlace Clone()
         {

@@ -36,13 +36,29 @@ def realResults(dataFolder, basePath, DEFAULT_DIESEL_COST, FIXED_L_PER_KM, FIXED
             loadingPlacesIndex += 1
             loadingPlace = LoadingPlace(loadingPlacesIndex, row['CODCENTCUSNOTAFISCAL'], row['LATITUDE_FILIAL'], 
                 row['LONGITUDE_FILIAL'])
+            if loadingPlace.CODCENTCUS == 17050 or loadingPlace.CODCENTCUS == 17250:
+                loadingPlace.LATITUDE_FILIAL = -23.689984434115285
+                loadingPlace.LONGITUDE_FILIAL = -46.60277603494763
+                row['LATITUDE_FILIAL'] = -23.689984434115285
+                row['LONGITUDE_FILIAL'] = -46.60277603494763
+                dfTrips.at[index, 'LATITUDE_FILIAL'] = -23.689984434115285
+                dfTrips.at[index, 'LONGITUDE_FILIAL'] = -46.60277603494763
+            if loadingPlace.CODCENTCUS == 14050:
+                loadingPlace.LATITUDE_FILIAL = -23.152246049659357
+                loadingPlace.LONGITUDE_FILIAL = -45.80131066379455
+                row['LATITUDE_FILIAL'] = -23.152246049659357
+                row['LONGITUDE_FILIAL'] = -45.80131066379455
+                dfTrips.at[index, 'LATITUDE_FILIAL'] = -23.152246049659357
+                dfTrips.at[index, 'LONGITUDE_FILIAL'] = -45.80131066379455
+            if loadingPlace.LATITUDE_FILIAL == 0 or loadingPlace.LONGITUDE_FILIAL == 0 or loadingPlace.LATITUDE_FILIAL == 1e-08 or loadingPlace.LONGITUDE_FILIAL == 1e-08:
+                print('Loading Place ' + str(loadingPlace.CODCENTCUS) + ' withou coordinates')
             loadingPlaces.append(loadingPlace)
 
         mixerTruck = next((mt for mt in mixerTrucks if mt.CODVEICULO == row['CODVEICULO']), None)
         if mixerTruck == None:
             mixerTrucksIndex += 1
             mixerTruck = MixerTruck(mixerTrucksIndex, row['CODVEICULO'], row['CODCENTCUSNOTAFISCAL'], 
-                row['LATITUDE_FILIAL'], row['LONGITUDE_FILIAL'])
+                loadingPlace.LATITUDE_FILIAL, loadingPlace.LONGITUDE_FILIAL)
             mixerTrucks.append(mixerTruck)
         dfTrips.at[index, 'MIXERTRUCKINDEX'] = mixerTruck.index
         
@@ -56,8 +72,8 @@ def realResults(dataFolder, basePath, DEFAULT_DIESEL_COST, FIXED_L_PER_KM, FIXED
 
         delivery = next((v for v in deliveries if v.CODPROGVIAGEM == row['CODPROGVIAGEM']), None)
         if delivery == None:
-            #constructionTime = datetime.strptime(row['HORCHEGADAOBRA'], '%m/%d/%y %H:%M %p')
-            constructionTime = datetime.strptime(row['HORCHEGADAOBRA'], '%m/%d/%Y %H:%M')
+            constructionTime = datetime.strptime(row['HORCHEGADAOBRA'], '%m/%d/%y %H:%M %p')
+            #constructionTime = datetime.strptime(row['HORCHEGADAOBRA'], '%m/%d/%Y %H:%M')
             minutes = (constructionTime.hour * 60) + constructionTime.minute
             delivery = Delivery(VLRVENDA=row['VLRVENDA'], HORCHEGADAOBRA = minutes, CODPROGRAMACAO=row['CODPROGRAMACAO'], 
                 CODPROGVIAGEM=row['CODPROGVIAGEM'], 
@@ -87,31 +103,31 @@ def realResults(dataFolder, basePath, DEFAULT_DIESEL_COST, FIXED_L_PER_KM, FIXED
     dfTrips['FINAL'] = dfTrips['HORCHEGADACENTRAL'].dt.strftime("%A, %d. %B %Y %I:%M%p")
     dfTrips['BEGIN'] = dfTrips['HORSAIDACENTRAL'].dt.strftime("%A, %d. %B %Y %I:%M%p")
     
-    fig = px.timeline(dfTrips, 
-        x_start=dfTrips['HORSAIDACENTRAL'], 
-        x_end=dfTrips['HORCHEGADACENTRAL'], 
-        y=dfTrips['MIXERTRUCKINDEX'], 
-        color=dfTrips['CODPROGRAMACAO'], 
-        hover_data={ 'BEGIN': True, 'FINAL': True, 
-            'HORSAIDACENTRAL': False, 'HORCHEGADACENTRAL': False, 
-            'CODPROGRAMACAO': True, 'CODVEICULO': True, 'CODPROGVIAGEM': True },
-        title='Real: Profit/Loss = ' + str(round(totalProfit, 0)) + ' and Total MT = ' + str(len(mixerTrucks)))
-    fig.update_yaxes(autorange='reversed')
-    fig.update_layout(title_font_size=42, font_size=18, title_font_family='Arial')
-    plotly.offline.plot(fig, filename=basePath + '\\RealGant_' + dataFolder + '.html')
+    # fig = px.timeline(dfTrips, 
+    #     x_start=dfTrips['HORSAIDACENTRAL'], 
+    #     x_end=dfTrips['HORCHEGADACENTRAL'], 
+    #     y=dfTrips['MIXERTRUCKINDEX'], 
+    #     color=dfTrips['CODPROGRAMACAO'], 
+    #     hover_data={ 'BEGIN': True, 'FINAL': True, 
+    #         'HORSAIDACENTRAL': False, 'HORCHEGADACENTRAL': False, 
+    #         'CODPROGRAMACAO': True, 'CODVEICULO': True, 'CODPROGVIAGEM': True },
+    #     title='Real: Profit/Loss = ' + str(round(totalProfit, 0)) + ' and Total MT = ' + str(len(mixerTrucks)))
+    # fig.update_yaxes(autorange='reversed')
+    # fig.update_layout(title_font_size=42, font_size=18, title_font_family='Arial')
+    # plotly.offline.plot(fig, filename=basePath + '\\RealGant_' + dataFolder + '.html')
 
-    gmap = gmplot.GoogleMapPlotter(loadingPlaces[0].LATITUDE_FILIAL, loadingPlaces[0].LONGITUDE_FILIAL, 11)
+    # gmap = gmplot.GoogleMapPlotter(loadingPlaces[0].LATITUDE_FILIAL, loadingPlaces[0].LONGITUDE_FILIAL, 11)
 
-    for delivery in deliveries:
-        loadingPlace = next((lp for lp in loadingPlaces if lp.CODCENTCUS == delivery.CODCENTCUSVIAGEM), None)
-        gmap.marker(loadingPlace.LATITUDE_FILIAL, loadingPlace.LONGITUDE_FILIAL, color='yellow', title='', label='Loading Place')
-        gmap.marker(delivery.LATITUDE_OBRA, delivery.LONGITUDE_OBRA, color='cornflowerblue', 
-            label=str(delivery.CODPROGRAMACAO))
-        gmap.plot([loadingPlace.LATITUDE_FILIAL, delivery.LATITUDE_OBRA], 
-            [loadingPlace.LONGITUDE_FILIAL, delivery.LONGITUDE_OBRA],  
-           'cornflowerblue', edge_width = 2.5)
+    # for delivery in deliveries:
+    #     loadingPlace = next((lp for lp in loadingPlaces if lp.CODCENTCUS == delivery.CODCENTCUSVIAGEM), None)
+    #     gmap.marker(loadingPlace.LATITUDE_FILIAL, loadingPlace.LONGITUDE_FILIAL, color='yellow', title='', label='Loading Place')
+    #     gmap.marker(delivery.LATITUDE_OBRA, delivery.LONGITUDE_OBRA, color='cornflowerblue', 
+    #         label=str(delivery.CODPROGRAMACAO))
+    #     gmap.plot([loadingPlace.LATITUDE_FILIAL, delivery.LATITUDE_OBRA], 
+    #         [loadingPlace.LONGITUDE_FILIAL, delivery.LONGITUDE_OBRA],  
+    #        'cornflowerblue', edge_width = 2.5)
 
-    gmap.apikey = googleMapsApiKey
-    gmap.draw(basePath + '\\RealMap_' + dataFolder + '.html')
+    # gmap.apikey = googleMapsApiKey
+    # gmap.draw(basePath + '\\RealMap_' + dataFolder + '.html')
 
     return googleMapsApiKey, deliveries, loadingPlaces, mixerTrucks

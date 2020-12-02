@@ -8,7 +8,7 @@ using System.Text.Json;
 
 namespace Heuristics
 {
-    class SimpleHeuristicGoogleMaps
+    public class NoTruckLimitationHeuristicGoogleMaps
     {
         public static void Execute(string folderPath, List<LoadingPlace> loadingPlaces, List<MixerTruck> mixerTrucks,
             List<Order> orders, List<Delivery> deliveries, TrafficInfo trafficInfo,
@@ -22,10 +22,30 @@ namespace Heuristics
                 lps => lps.CODCENTCUS != loadingPlace.CODCENTCUS &&
                 lps.LATITUDE_FILIAL == loadingPlace.LATITUDE_FILIAL &&
                 lps.LONGITUDE_FILIAL == loadingPlace.LONGITUDE_FILIAL);
-                if(loadingPlaceSister != null)
+                if (loadingPlaceSister != null)
                     loadingPlace.CODCENTCUSSISTER = loadingPlaceSister.CODCENTCUS;
                 loadingPlace.MixerTrucks = mixerTrucks.Where(mt => mt.CODCENTCUS == loadingPlace.CODCENTCUS ||
                     (loadingPlaceSister != null && mt.CODCENTCUS == loadingPlaceSister.CODCENTCUS)).ToList();
+            }
+            int maxLoadingPlaceIndex = loadingPlaces
+                .Where(lp => lp.MixerTrucks.Count > 0)
+                .Select(lp => lp.MixerTrucks.OrderByDescending(mt => mt.index).First())
+                .ToList().FirstOrDefault().index;
+            foreach (LoadingPlace loadingPlace in loadingPlaces)
+            {
+                if (loadingPlace.MixerTrucks.Count > 0)
+                {
+                    List<MixerTruck> mixers = new List<MixerTruck>();
+                    for(int i = 0; i < 200; i++)
+                    {
+                        MixerTruck newMixerTruck = loadingPlace.MixerTrucks[0].Clone();
+                        newMixerTruck.EndOfTheLastService = DateTime.MinValue;
+                        newMixerTruck.index += maxLoadingPlaceIndex + 1 + i;
+                        maxLoadingPlaceIndex += i + 1;
+                        mixers.Add(newMixerTruck);
+                    }
+                    loadingPlace.MixerTrucks.AddRange(mixers);
+                }
             }
 
             foreach (Order order in orders)
@@ -33,6 +53,10 @@ namespace Heuristics
                 order.TRIPS = deliveries.Where(d => d.CODPROGRAMACAO == order.CODPROGRAMACAO).ToList();
                 foreach (LoadingPlace loadingPlace in loadingPlaces)
                 {
+                    if(order.LoadingPlaceInfos.Any(lpi => lpi.CODCENTCUS == loadingPlace.CODCENTCUS))
+                    {
+                        continue;
+                    }
                     TrafficInfo.DirectionsResult directionsResult = trafficInfo.DirectionsResults.FirstOrDefault(dr =>
                         Math.Round(dr.OriginLatitude, 6) == loadingPlace.LATITUDE_FILIAL &&
                         Math.Round(dr.OriginLongitude, 6) == loadingPlace.LONGITUDE_FILIAL &&
@@ -46,7 +70,7 @@ namespace Heuristics
                             Math.Round(dr.OriginLongitude, 6) == loadingPlace.LONGITUDE_FILIAL &&
                             (Math.Round(dr.DestinyLatitude, 8) == order.LATITUDE_OBRA) &&
                             (Math.Round(dr.DestinyLongitude, 8) == order.LONGITUDE_OBRA) &&
-                            ((dr.Hour == delivery.HORCHEGADAOBRA.Hour) || dr.Hour == (delivery.HORCHEGADAOBRA.Hour - 1)));
+                            (dr.Hour == delivery.HORCHEGADAOBRA.Hour || dr.Hour == (delivery.HORCHEGADAOBRA.Hour - 1)));
                         if (directionsResultDelivery == null)
                         {
                             directionsResultDelivery = directionsResult;
@@ -55,7 +79,7 @@ namespace Heuristics
                         loadingPlaceInfo.TravelTime = (int)directionsResultDelivery.TravelTime;
                         if (delivery.CUSVAR <= 0)
                             delivery.CUSVAR = DEFAULT_RMC_COST;
-                        loadingPlaceInfo.Cost += ((delivery.CUSVAR * delivery.VALVOLUMEPROG) + 
+                        loadingPlaceInfo.Cost += ((delivery.CUSVAR * delivery.VALVOLUMEPROG) +
                             (loadingPlaceInfo.Distance * FIXED_L_PER_KM * 2 * DEFAULT_DIESEL_COST));
                     }
                     order.LoadingPlaceInfos.Add(loadingPlaceInfo);
@@ -66,18 +90,18 @@ namespace Heuristics
             List<Delivery> deliveryResults = new List<Delivery>();
 
             orders = orders.OrderBy(o => o.HORSAIDACENTRAL).ToList();
-            foreach(Order order in orders)
+            foreach (Order order in orders)
             {
                 bool orderCouldBeServed = false;
-                foreach(LoadingPlaceInfo loadingPlaceInfo in order.LoadingPlaceInfos)
+                foreach (LoadingPlaceInfo loadingPlaceInfo in order.LoadingPlaceInfos)
                 {
                     LoadingPlace loadingPlace = loadingPlaces.FirstOrDefault(lp => lp.CODCENTCUS == loadingPlaceInfo.CODCENTCUS &&
                         lp.MixerTrucks.Count > 0);
-                    if(loadingPlace != null)
+                    if (loadingPlace != null)
                     {
-                        foreach(Delivery delivery in order.TRIPS)
+                        foreach (Delivery delivery in order.TRIPS)
                         {
-                            if (DetermineMixerTruck(delivery, loadingPlace, loadingPlaceInfo, FIXED_LOADING_TIME, 
+                            if (DetermineMixerTruck(delivery, loadingPlace, loadingPlaceInfo, FIXED_LOADING_TIME,
                                 FIXED_CUSTOMER_FLOW_RATE, FIXED_L_PER_KM, DEFAULT_DIESEL_COST))
                             {
                                 orderCouldBeServed = true;
@@ -99,9 +123,9 @@ namespace Heuristics
                         order.CODCENTCUS = 0;
                     }
                 }
-                if(orderCouldBeServed == false)
+                if (orderCouldBeServed == false)
                 {
-                    Console.WriteLine($"Order {order.CODPROGRAMACAO} could be served...");
+                    Console.WriteLine($"Order {order.CODPROGRAMACAO} could not be served...");
                 }
                 deliveryResults.AddRange(order.TRIPS);
             }
@@ -111,7 +135,7 @@ namespace Heuristics
         }
 
         static bool DetermineMixerTruck(Delivery delivery, LoadingPlace loadingPlace,
-            LoadingPlaceInfo loadingPlaceInfo, double FIXED_LOADING_TIME, 
+            LoadingPlaceInfo loadingPlaceInfo, double FIXED_LOADING_TIME,
             double FIXED_CUSTOMER_FLOW_RATE, double FIXED_L_PER_KM,
             double DEFAULT_DIESEL_COST)
         {
@@ -204,6 +228,18 @@ namespace Heuristics
         static void WriteResults(List<Delivery> deliveryResults, List<LoadingPlace> loadingPlaces, double FIXED_CUSTOMER_FLOW_RATE,
             double FIXED_MIXED_TRUCK_COST, string folderPath)
         {
+            List<int> codVeiculos = deliveryResults.GroupBy(dr => dr.CODVEICULO).Select(d => d.Key).ToList();
+            Dictionary<int, int> keyValuePairs = new Dictionary<int, int>();
+            int mixerTruckIndex = 1;
+            foreach (Delivery delivery in deliveryResults)
+            {
+                if(!keyValuePairs.ContainsKey(delivery.CODVEICULO))
+                {
+                    keyValuePairs.Add(delivery.CODVEICULO, mixerTruckIndex);
+                    mixerTruckIndex++;
+                }
+                delivery.CODVEICULO = keyValuePairs.GetValueOrDefault(delivery.CODVEICULO);
+            }
             Result result = new Result();
             result.numberOfDeliveries = deliveryResults.Count;
             result.numberOfLoadingPlaces = loadingPlaces.Count;
@@ -217,12 +253,15 @@ namespace Heuristics
                     Delivery = delivery.CODPROGVIAGEM,
                     MixerTruck = delivery.CODVEICULO,
                     LoadingBeginTime = (delivery.BeginLoadingTime.Hour * 60) + delivery.BeginLoadingTime.Minute,
-                    ServiceTime = (delivery.ArrivalTimeAtConstruction.Hour * 60) + delivery.ArrivalTimeAtConstruction.Minute,
-                    ReturnTime = (delivery.ArrivalTimeAtLoadingPlace.Hour * 60) + delivery.ArrivalTimeAtLoadingPlace.Minute,
+                    ServiceTime = ((delivery.ArrivalTimeAtConstruction.Day - delivery.BeginLoadingTime.Day) * 24 * 60) + 
+                        (delivery.ArrivalTimeAtConstruction.Hour * 60) + delivery.ArrivalTimeAtConstruction.Minute,
+                    ReturnTime = ((delivery.ArrivalTimeAtLoadingPlace.Day - delivery.BeginLoadingTime.Day) * 24 * 60) +
+                        (delivery.ArrivalTimeAtLoadingPlace.Hour * 60) + delivery.ArrivalTimeAtLoadingPlace.Minute,
                     LoadingPlant = delivery.CODCENTCUSVIAGEM,
                     Revenue = (int)((delivery.VLRVENDA * delivery.VALVOLUMEPROG) - delivery.Cost),
                     BeginTimeWindow = (delivery.BeginLoadingTime.Hour * 60) + delivery.BeginLoadingTime.Minute,
-                    EndTimeWindow = (delivery.ArrivalTimeAtLoadingPlace.Hour * 60) + delivery.ArrivalTimeAtLoadingPlace.Minute,
+                    EndTimeWindow = ((delivery.ArrivalTimeAtLoadingPlace.Day - delivery.BeginLoadingTime.Day) * 24 * 60) +
+                        (delivery.ArrivalTimeAtLoadingPlace.Hour * 60) + delivery.ArrivalTimeAtLoadingPlace.Minute,
                     TravelTime = delivery.TravelTime,
                     TravelCost = (int)delivery.Cost,
                     DurationOfService = (int)(FIXED_CUSTOMER_FLOW_RATE * delivery.VALVOLUMEPROG),
@@ -234,7 +273,7 @@ namespace Heuristics
             }
             result.objective = (int)(result.trips.Sum(rt => rt.Revenue) - (result.numberOfMixerTrucks * FIXED_MIXED_TRUCK_COST));
             string jsonString = JsonSerializer.Serialize(result);
-            File.WriteAllText(folderPath + "\\ResultGoogleMapsSimpleHeuristic.json", jsonString);
+            File.WriteAllText(folderPath + "\\ResultNoTruckLimitationHeuristic.json", jsonString);
         }
     }
 }

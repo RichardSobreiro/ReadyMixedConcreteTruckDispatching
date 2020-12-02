@@ -16,8 +16,10 @@ namespace Heuristics.Entities
         public double LATITUDE_OBRA;
         public double LONGITUDE_OBRA;
         public double VLRVENDA;
-        public List<LoadingPlace> LOADINGPLACES_INFO = new List<LoadingPlace>();
 
+        public int Distance;
+        public int TravelTime;
+        public double Cost;
         public DateTime BeginLoadingTime;
         public DateTime EndLoadingTime;
         public DateTime ArrivalTimeAtConstruction;

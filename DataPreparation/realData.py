@@ -45,15 +45,15 @@ def realData(mixerTrucks, loadingPlaces, deliveries, orders,
     for order in orders:
         for loadingPlace in loadingPlaces:
             directionResult = next((directionResult for directionResult in directionsResults 
-                if directionResult.OriginLatitude == float(loadingPlace.LATITUDE_FILIAL) and 
-                    directionResult.OriginLongitude == float(loadingPlace.LONGITUDE_FILIAL) and 
-                    directionResult.DestinyLatitude == float(order.LATITUDE_OBRA) and
-                    directionResult.DestinyLongitude == float(order.LONGITUDE_OBRA) and 
+                if directionResult.OriginLatitude == round(float(loadingPlace.LATITUDE_FILIAL), 6) and 
+                    directionResult.OriginLongitude == round(float(loadingPlace.LONGITUDE_FILIAL), 6) and 
+                    directionResult.DestinyLatitude == round(float(order.LATITUDE_OBRA), 8) and
+                    directionResult.DestinyLongitude == round(float(order.LONGITUDE_OBRA), 8) and 
                     directionResult.Hour == pd.to_datetime(order.HORSAIDACENTRAL).hour), None)
             if directionResult == None:
                 loadingPlaceLatLong = (float(loadingPlace.LATITUDE_FILIAL), float(loadingPlace.LONGITUDE_FILIAL))
                 constructionSiteLatLong = (float(order.LATITUDE_OBRA), float(order.LONGITUDE_OBRA))
-                now = datetime.now() + timedelta(days=1)   
+                now = datetime.now() + timedelta(days=1)
                 directions_result = gmaps.directions(loadingPlaceLatLong, constructionSiteLatLong, mode="driving", 
                     departure_time=now.replace(hour=pd.to_datetime(order.HORSAIDACENTRAL).hour, minute=0))
                 if len(directions_result) > 0:
@@ -62,10 +62,10 @@ def realData(mixerTrucks, loadingPlaces, deliveries, orders,
                     directionResult = DirectionResult()
                     directionResult.Distance = int(loadingPlace.DISTANCE)
                     directionResult.TravelTime = int(loadingPlace.TRAVELTIME)
-                    directionResult.OriginLatitude = float(loadingPlace.LATITUDE_FILIAL)
-                    directionResult.OriginLongitude = float(loadingPlace.LONGITUDE_FILIAL)
-                    directionResult.DestinyLatitude = float(order.LATITUDE_OBRA)
-                    directionResult.DestinyLongitude = float(order.LONGITUDE_OBRA)
+                    directionResult.OriginLatitude = round(float(loadingPlace.LATITUDE_FILIAL), 6)
+                    directionResult.OriginLongitude = round(float(loadingPlace.LONGITUDE_FILIAL), 6)
+                    directionResult.DestinyLatitude = round(float(order.LATITUDE_OBRA), 8)
+                    directionResult.DestinyLongitude = round(float(order.LONGITUDE_OBRA), 8)
                     directionResult.Hour = pd.to_datetime(order.HORSAIDACENTRAL).hour
                     directionResult.TimeString = order.HORSAIDACENTRAL
                     directionResult.Result = ''
@@ -77,10 +77,10 @@ def realData(mixerTrucks, loadingPlaces, deliveries, orders,
                     directionResult = DirectionResult()
                     directionResult.Distance = loadingPlace.DISTANCE
                     directionResult.TravelTime = loadingPlace.TRAVELTIME
-                    directionResult.OriginLatitude = float(loadingPlace.LATITUDE_FILIAL)
-                    directionResult.OriginLongitude = float(loadingPlace.LONGITUDE_FILIAL)
-                    directionResult.DestinyLatitude = float(order.LATITUDE_OBRA)
-                    directionResult.DestinyLongitude = float(order.LONGITUDE_OBRA)
+                    directionResult.OriginLatitude = round(float(loadingPlace.LATITUDE_FILIAL), 6)
+                    directionResult.OriginLongitude = round(float(loadingPlace.LONGITUDE_FILIAL), 6)
+                    directionResult.DestinyLatitude = round(float(order.LATITUDE_OBRA), 8)
+                    directionResult.DestinyLongitude = round(float(order.LONGITUDE_OBRA), 8)
                     directionResult.Hour = pd.to_datetime(order.HORSAIDACENTRAL).hour
                     directionResult.TimeString = order.HORSAIDACENTRAL
                     directionResult.Result = ''

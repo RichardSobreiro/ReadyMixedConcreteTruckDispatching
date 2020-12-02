@@ -35,6 +35,14 @@ def main(argv):
         loadingPlace = next((lp for lp in loadingPlaces if lp.CODCENTCUS == row['CODCENTCUSNOTAFISCAL']), None)
         if loadingPlace == None:
             loadingPlace = LoadingPlace(loadingPlacesIndex, row['CODCENTCUSNOTAFISCAL'], row['LATITUDE_FILIAL'], row['LONGITUDE_FILIAL'])
+            if loadingPlace.CODCENTCUS == 17050 or loadingPlace.CODCENTCUS == 17250:
+                loadingPlace.LATITUDE_FILIAL = -23.689984434115285
+                loadingPlace.LONGITUDE_FILIAL = -46.60277603494763
+            if loadingPlace.CODCENTCUS == 14050:
+                loadingPlace.LATITUDE_FILIAL = -23.152246049659357
+                loadingPlace.LONGITUDE_FILIAL = -45.80131066379455
+            if loadingPlace.LATITUDE_FILIAL == 0 or loadingPlace.LONGITUDE_FILIAL == 0 or loadingPlace.LATITUDE_FILIAL == 1e-08 or loadingPlace.LONGITUDE_FILIAL == 1e-08:
+                print('Loading Place ' + str(loadingPlace.CODCENTCUS) + ' withou coordinates')
             loadingPlaces.append(loadingPlace)
             loadingPlacesIndex += 1
 

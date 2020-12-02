@@ -13,7 +13,7 @@ from classes import LoadingPlace, MixerTruck, Order, Delivery
 
 def simpleHeuristicResults(fileName, basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces):
     tripsJson = 0
-    with open(basePath + '\\Result' + fileName + 'SimpleHeuristic.json') as data_file:    
+    with open(basePath + '\\Result' + fileName + 'Heuristic.json') as data_file:    
         tripsJson = json.load(data_file)
     
     today = datetime.utcnow().date()
@@ -25,11 +25,14 @@ def simpleHeuristicResults(fileName, basePath, dataFolder, googleMapsApiKey, del
     df['ReturnTime'] = df['ReturnTime'].astype(int)
     df['ServiceTime'] = df['ServiceTime'].astype(int)
 
-    mixerTrucks = []
+    mixerTrucksCount = []
+    mixerTruckIndex = 1
     for index, row in df.iterrows():
-        mixerTruck = next((cod for cod in mixerTrucks if cod == row['MixerTruck']), None)
+        mixerTruck = next((cod for cod in mixerTrucksCount if cod == row['MixerTruck']), None)
         if mixerTruck == None:
-            mixerTrucks.append(row['MixerTruck'])
+            mixerTrucksCount.append(row['MixerTruck'])
+            df.at[index, 'MIXERTRUCKINDEX'] = mixerTruckIndex
+            mixerTruckIndex += 1
         row['LoadingBeginTime'] = startTime + timedelta(minutes=float(row['LoadingBeginTime']))
         df.at[index, 'LoadingBeginTime'] = row['LoadingBeginTime']
         row['ReturnTime'] = startTime + timedelta(minutes=float(row['ReturnTime']))
@@ -57,7 +60,7 @@ def simpleHeuristicResults(fileName, basePath, dataFolder, googleMapsApiKey, del
             'LoadingBeginTime': False, 'ReturnTime': False, 
             'CodOrder': True, 'MixerTruck': True, 'CodDelivery': True, 'Lateness': True, 'Arrival': True,
             'DurationOfService': True, 'TravelTime': True, 'LoadingPlant': True },
-        title='Haversine: Profit/Loss = '+ str(tripsJson['objective']) + ' and Total MT = ' + str(len(mixerTrucks)))
+        title='Haversine: Profit/Loss = '+ str(tripsJson['objective']) + ' and Total MT = ' + str(len(mixerTrucksCount)))
     fig.update_yaxes(autorange='reversed')
     fig.update_layout(title_font_size=42, font_size=18, title_font_family='Arial')
     plotly.offline.plot(fig, filename=basePath + '\\SimpleHeuristic' + fileName + 'Gant_' + dataFolder + '.html')
@@ -67,7 +70,7 @@ def simpleHeuristicResults(fileName, basePath, dataFolder, googleMapsApiKey, del
     for index, row in df.iterrows():
         loadingPlace = next((lp for lp in loadingPlaces if lp.CODCENTCUS == row['LoadingPlant']), None)
         gmap.marker(loadingPlace.LATITUDE_FILIAL, loadingPlace.LONGITUDE_FILIAL, color='yellow', title=str(loadingPlace.CODCENTCUS), 
-            label='Loading Place')
+            label=str(loadingPlace.CODCENTCUS))
         delivery = next((d for d in deliveries if d.CODPROGVIAGEM == row['CodDelivery']), None)
         gmap.marker(delivery.LATITUDE_OBRA, delivery.LONGITUDE_OBRA, color='cornflowerblue', 
             label=str(delivery.CODPROGRAMACAO), title='')
