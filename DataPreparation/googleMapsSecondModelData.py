@@ -28,10 +28,9 @@ def convert_dictionary_directions_results_to_array(directionsResultsStored):
         directionsResults.append(directionResult)
     return directionsResults
 
-def realData(mixerTrucks, loadingPlaces, deliveries, orders, 
+def googleMapsSecondModelData(mixerTrucks, loadingPlaces, deliveries, orders, 
     NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
     FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath):
-
     googleApiKeyPathFile = 'C:\GoogleApiKey\key.txt'
     fileGmapsKey = open(googleApiKeyPathFile, 'r') 
     lines = fileGmapsKey.readlines()
@@ -92,109 +91,153 @@ def realData(mixerTrucks, loadingPlaces, deliveries, orders,
             else:
                 loadingPlace.DISTANCE = directionResult.Distance
                 loadingPlace.TRAVELTIME = directionResult.TravelTime
-            order.LOADINGPLACES_INFO.append(loadingPlace)
+            loadingPlaceInfo = LoadingPlace(index=loadingPlace.index, 
+                CODCENTCUS=loadingPlace.CODCENTCUS, LATITUDE_FILIAL=loadingPlace.LATITUDE_FILIAL, 
+                LONGITUDE_FILIAL=loadingPlace.LONGITUDE_FILIAL)
+            loadingPlaceInfo.DISTANCE = loadingPlace.DISTANCE
+            loadingPlaceInfo.TRAVELTIME = loadingPlace.TRAVELTIME
+            order.LOADINGPLACES_INFO.append(loadingPlaceInfo)
 
-    nLP = len(loadingPlaces)
-    nMT = len(mixerTrucks)
-    nD = len(deliveries)
-    dcod = np.zeros((len(deliveries)))
-    odcod = np.zeros((len(deliveries)))
-    lpmt = np.zeros((len(mixerTrucks)))
-    c = np.zeros((len(mixerTrucks), len(deliveries)))
-    t = np.zeros((len(mixerTrucks), len(deliveries)))
-    q = FIXED_MIXED_TRUCK_CAPACIT_M3
-    tc = FIXED_MIXED_TRUCK_COST
-    d = np.zeros((len(deliveries)))
+    nN = len(loadingPlaces) + len(deliveries)
+    nA = len(loadingPlaces) + len(deliveries)
+    nI = len(loadingPlaces)
+    nJ = len(deliveries)
+    nK = len(mixerTrucks)
+    nL = 8
+    revenues = np.zeros((len(deliveries)))
+    codLoadingPlants = np.zeros((len(loadingPlaces)))
+    codMixerTrucks = np.zeros((len(mixerTrucks)))
+    codOrders = np.zeros((len(deliveries)))
+    codDeliveries = np.zeros((len(deliveries)))
     a = np.zeros((len(deliveries)))
     b = np.zeros((len(deliveries)))
-    cfr = np.zeros((len(deliveries)))
-    od = np.zeros((len(deliveries)))
-    dmbs = np.zeros((len(deliveries)))
-    dmt = np.zeros((len(mixerTrucks), len(deliveries)))
+    c = np.zeros((len(loadingPlaces), len(deliveries)))
+    t = np.zeros((len(loadingPlaces), len(deliveries)))
+    csd = np.zeros((len(deliveries)))
 
-    r = np.zeros((len(deliveries)))
-
-    ld = 8
-
-    fdno = 0
-
-    M = 720
+    u = np.zeros((len(mixerTrucks), len(loadingPlaces)))
 
     i = 0
-    for mt in mixerTrucks:
+    for lp in loadingPlaces:
+        codLoadingPlants[i] = lp.CODCENTCUS
         j = 0
         for order in orders:
-            loadingPlace = next((lp for lp in order.LOADINGPLACES_INFO if lp.CODCENTCUS == mt.CODCENTCUS), None)
+            loadingPlaceInfo = next((lpo for lpo in order.LOADINGPLACES_INFO if lp.CODCENTCUS == lpo.CODCENTCUS), None)
+            if order.MEDIA_M3_DESCARGA == None or order.MEDIA_M3_DESCARGA <= 2:
+                order.MEDIA_M3_DESCARGA = 4
             for dl in order.TRIPS:
-                distance = loadingPlace.DISTANCE
-                if dl.CUSVAR == 0 or dl.CUSVAR == None:
-                    dl.CUSVAR = DEFAULT_RMC_COST
-                cost = dl.CUSVAR * int(dl.VALVOLUMEPROG) + (distance * FIXED_L_PER_KM * 2 * DEFAULT_DIESEL_COST)
-                c[i][j] = round(cost)
-                r[j] = int(dl.VLRVENDA) * int(dl.VALVOLUMEPROG)
-                dcod[j] = dl.CODPROGVIAGEM
-                odcod[j] = dl.CODPROGRAMACAO
-                t[i][j] = loadingPlace.TRAVELTIME
-                lpmt[i] = int(loadingPlace.index)
-                d[j] = dl.VALVOLUMEPROG
                 a[j] = dl.HORCHEGADAOBRA
                 b[j] = dl.HORCHEGADAOBRA + 15
-                cfr[j] = 3
-                od[j] = dl.CODPROGRAMACAO
-                if dl.CODPROGRAMACAO == NEW_ORDER_ID:
-                    dmbs[j] = 0
-                else:
-                    dmbs[j] = 1
-                dmt[i][j] = 1
-                ld = 8
-                if fdno == 0 and dl.CODPROGRAMACAO == NEW_ORDER_ID:
-                    fdno = j
-
+                t[i][j] = loadingPlaceInfo.TRAVELTIME
+                distance = loadingPlaceInfo.DISTANCE
+                if dl.CUSVAR == 0 or dl.CUSVAR == None:
+                    dl.CUSVAR = DEFAULT_RMC_COST
+                cost = (dl.CUSVAR * int(dl.VALVOLUMEPROG)) + (distance * FIXED_L_PER_KM * DEFAULT_DIESEL_COST * 2)
+                c[i][j] = round(cost)
+                revenues[j] = int(dl.VLRVENDA) * int(dl.VALVOLUMEPROG)
+                codOrders[j] = order.CODPROGRAMACAO
+                codDeliveries[j] = dl.CODPROGVIAGEM
+                csd[j] = order.MEDIA_M3_DESCARGA * dl.VALVOLUMEPROG
                 j += 1
         i += 1
     
-    lpmt = lpmt.astype(np.int32)
+    for k in range(len(mixerTrucks)):
+        codMixerTrucks[k] = mixerTrucks[k].CODVEICULO
+        loadingPlaceMixerTruck = next((lp for lp in loadingPlaces if lp.CODCENTCUS == mixerTrucks[k].CODCENTCUS), None)
+        u[k][(loadingPlaceMixerTruck.index - 1)] = 1
 
     datfile = open(basePath + '\\RMCTDP_Simple_Ref_GoogleMaps.dat', 'w+')
 
-    datfile.write('nLP = ' + str(nLP) + ';\n')
-    datfile.write('nMT = ' + str(nMT) + ';\n')        
-    datfile.write('nD = ' + str(nD) + ';\n')
+    datfile.write('nN = ' + str(nN) + ';\n')
+    datfile.write('nA = ' + str(nA) + ';\n')
+    datfile.write('nI = ' + str(nI) + ';\n')
+    datfile.write('nJ = ' + str(nJ) + ';\n')
+    datfile.write('nK = ' + str(nK) + ';\n')
+    datfile.write('nL = ' + str(nL) + ';\n')
+
+    # datfile.write('u = [\n')
+    # i = 0
+    # while i < nK:
+    #     strCLine = ''
+    #     strCLine = '[' + str(int(u[i][0]))
+    #     j = 1
+    #     while j < nI:
+    #         strCLine += (', ' + str(int(u[i][j])))
+    #         j += 1
+    #     if i == (nK - 1):
+    #         strCLine += ']\n'
+    #     else:
+    #         strCLine += '],\n'
+    #     datfile.write(strCLine)
+    #     i += 1
+    # datfile.write('];\n')
 
     i = 1
-    strLpmt = 'lpmt = [' + str(lpmt[0])
-    while i < (nMT):
-        strLpmt += ', ' + str(lpmt[i])
+    strrevenues = 'revenues = [' + str(int(revenues[0]))
+    while i < (nJ):
+        strrevenues += ', ' + str(int(revenues[i]))
         i += 1
-    strLpmt += '];\n'
-    datfile.write(strLpmt)
+    strrevenues += '];\n'
+    datfile.write(strrevenues)
 
     i = 1
-    strDcod = 'dcod = [' + str(int(dcod[0]))
-    while i < (nD):
-        strDcod += ', ' + str(int(dcod[i]))
+    strcodLoadingPlants = 'codLoadingPlants = [' + str(int(codLoadingPlants[0]))
+    while i < (nI):
+        strcodLoadingPlants += ', ' + str(int(codLoadingPlants[i]))
         i += 1
-    strDcod += '];\n'
-    datfile.write(strDcod)
+    strcodLoadingPlants += '];\n'
+    datfile.write(strcodLoadingPlants)
 
     i = 1
-    strOdcod = 'odcod = [' + str(int(odcod[0]))
-    while i < (nD):
-        strOdcod += ', ' + str(int(odcod[i]))
+    strcodMixerTrucks = 'codMixerTrucks = [' + str(int(codMixerTrucks[0]))
+    while i < (nK):
+        strcodMixerTrucks += ', ' + str(int(codMixerTrucks[i]))
         i += 1
-    strOdcod += '];\n'
-    datfile.write(strOdcod)
+    strcodMixerTrucks += '];\n'
+    datfile.write(strcodMixerTrucks)
+
+    i = 1
+    strcodOrders = 'codOrders = [' + str(int(codOrders[0]))
+    while i < (nJ):
+        strcodOrders += ', ' + str(int(codOrders[i]))
+        i += 1
+    strcodOrders += '];\n'
+    datfile.write(strcodOrders)
+
+    i = 1
+    strcodDeliveries = 'codDeliveries = [' + str(int(codDeliveries[0]))
+    while i < (nJ):
+        strcodDeliveries += ', ' + str(int(codDeliveries[i]))
+        i += 1
+    strcodDeliveries += '];\n'
+    datfile.write(strcodDeliveries)
+
+    i = 1
+    stra = 'a = [' + str(int(a[0]))
+    while i < (nJ):
+        stra += ', ' + str(int(a[i]))
+        i += 1
+    stra += '];\n'
+    datfile.write(stra)
+    
+    i = 1
+    strb = 'b = [' + str(int(b[0]))
+    while i < (nJ):
+        strb += ', ' + str(int(b[i]))
+        i += 1
+    strb += '];\n'
+    datfile.write(strb)
 
     datfile.write('c = [\n')
     i = 0
-    while i < nMT:
+    while i < nI:
         strCLine = ''
-        strCLine = '[' + str(c[i][0])
+        strCLine = '[' + str(int(c[i][0]))
         j = 1
-        while j < nD:
-            strCLine += (', ' + str(c[i][j]))
+        while j < nJ:
+            strCLine += (', ' + str(int(c[i][j])))
             j += 1
-        if i == (nMT - 1):
+        if i == (nI - 1):
             strCLine += ']\n'
         else:
             strCLine += '],\n'
@@ -204,14 +247,14 @@ def realData(mixerTrucks, loadingPlaces, deliveries, orders,
 
     datfile.write('t = [\n')
     i = 0
-    while i < nMT:
+    while i < nI:
         strTLine = ''
-        strTLine = '[' + str(t[i][0])
+        strTLine = '[' + str(int(t[i][0]))
         j = 1
-        while j < nD:
-            strTLine += (', ' + str(t[i][j]))
+        while j < nJ:
+            strTLine += (', ' + str(int(t[i][j])))
             j += 1
-        if i == (nMT - 1):
+        if i == (nI - 1):
             strTLine += ']\n'
         else:
             strTLine += '],\n'
@@ -219,83 +262,10 @@ def realData(mixerTrucks, loadingPlaces, deliveries, orders,
         i += 1
     datfile.write('];\n')
 
-    datfile.write('dmt = [\n')
-    i = 0
-    while i < nMT:
-        strDmtLine = ''
-        strDmtLine = '[' + str(dmt[i][0])
-        j = 1
-        while j < nD:
-            strDmtLine += (', ' + str(dmt[i][j]))
-            j += 1
-        if i == (nMT - 1):
-            strDmtLine += ']\n'
-        else:
-            strDmtLine += '],\n'
-        datfile.write(strDmtLine)
-        i += 1
-    datfile.write('];\n')
-
-    datfile.write('q = ' + str(q) + ';\n')
-    datfile.write('tc = ' + str(tc) + ';\n')
-    datfile.write('fdno = ' + str(fdno) + ';\n')
-
     i = 1
-    strD = 'd = [' + str(d[0])
-    while i < nD:
-        strD += ', ' + str(d[i])
+    strcsd = 'csd = [' + str(int(csd[0]))
+    while i < (nJ):
+        strcsd += ', ' + str(int(csd[i]))
         i += 1
-    strD += '];\n'
-    datfile.write(strD)
-
-    i = 1
-    strA = 'a = [' + str(a[0])
-    while i < nD:
-        strA += ', ' + str(a[i])
-        i += 1
-    strA += '];\n'
-    datfile.write(strA)
-
-    i = 1
-    strB = 'b = [' + str(b[0])
-    while i < nD:
-        strB += ', ' + str(b[i])
-        i += 1
-    strB += '];\n'
-    datfile.write(strB)
-
-    i = 1
-    strCfr = 'cfr = [' + str(cfr[0])
-    while i < nD:
-        strCfr += ', ' + str(cfr[i])
-        i += 1
-    strCfr += '];\n'
-    datfile.write(strCfr)
-
-    i = 1
-    strOd = 'od = [' + str(od[0])
-    while i < nD:
-        strOd += ', ' + str(od[i])
-        i += 1
-    strOd += '];\n'
-    datfile.write(strOd)
-
-    i = 1
-    strR = 'r = [' + str(r[0])
-    while i < nD:
-        strR += ', ' + str(r[i])
-        i += 1
-    strR += '];\n'
-    datfile.write(strR)
-
-    i = 1
-    strDmbs = 'dmbs = [' + str(dmbs[0])
-    while i < nD:
-        strDmbs += ', ' + str(dmbs[i])
-        i += 1
-    strDmbs += '];\n'
-    datfile.write(strDmbs)
-
-    datfile.write('ld = ' + str(ld) + ';\n')
-
-    datfile.write('M = ' + str(M) + ';\n')
+    strcsd += '];\n'
+    datfile.write(strcsd)

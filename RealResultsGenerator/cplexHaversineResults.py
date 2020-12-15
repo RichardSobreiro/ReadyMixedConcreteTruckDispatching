@@ -13,7 +13,7 @@ from classes import LoadingPlace, MixerTruck, Order, Delivery
 
 def cplexHaversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces):
     tripsJson = 0
-    with open(basePath + '\\ResultHaversine.json') as data_file:    
+    with open(basePath + '\\ResultGoogleMapsCplexCantuFunes.json') as data_file:    
         tripsJson = json.load(data_file)
     
     today = datetime.utcnow().date()
@@ -25,25 +25,31 @@ def cplexHaversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, lo
     df['ReturnTime'] = df['ReturnTime'].astype(int)
     df['ServiceTime'] = df['ServiceTime'].astype(int)
 
-    df.loc[df['LoadingBeginTime'] < 0, 'LoadingBeginTime'] = (df['LoadingBeginTime'] - 20)
+    #df.loc[df['LoadingBeginTime'] < 0, 'LoadingBeginTime'] = (df['LoadingBeginTime'] - 20)
     
     mixerTrucks = []
-    totalProfit = 0
+    totalRevenue = 0
     for index, row in df.iterrows():
         mixerTruck = next((cod for cod in mixerTrucks if cod == row['MixerTruck']), None)
         if mixerTruck == None:
             mixerTrucks.append(row['MixerTruck'])
-        row['LoadingBeginTime'] = startTime + timedelta(minutes=row['LoadingBeginTime'])
+        row['LoadingBeginTime'] = startTime + timedelta(minutes=row['LoadingBeginTime'].item())
         df.at[index, 'LoadingBeginTime'] = row['LoadingBeginTime']
         row['ReturnTime'] = startTime + timedelta(minutes=row['ReturnTime'])
         df.at[index, 'ReturnTime'] = row['ReturnTime']
         row['ServiceTime'] = startTime + timedelta(minutes=row['ServiceTime'])
         df.at[index, 'ServiceTime'] = row['ServiceTime']
-        totalProfit += float(row['Revenue']) - float(row['TravelCost'])
+        row['BeginTimeWindow'] = startTime + timedelta(minutes=row['BeginTimeWindow'])
+        df.at[index, 'BeginTimeWindow'] = row['BeginTimeWindow']
+        row['EndTimeWindow'] = startTime + timedelta(minutes=row['EndTimeWindow'])
+        df.at[index, 'EndTimeWindow'] = row['EndTimeWindow']
+        totalRevenue += float(row['Revenue'])
 
     df['ReturnTime'] = pd.to_datetime(df['ReturnTime'])
     df['LoadingBeginTime'] = pd.to_datetime(df['LoadingBeginTime'])
     df['ServiceTime'] = pd.to_datetime(df['ServiceTime'])
+    df['BeginTimeWindow'] = pd.to_datetime(df['BeginTimeWindow'])
+    df['EndTimeWindow'] = pd.to_datetime(df['EndTimeWindow'])
 
     df['FINAL'] = ''
     df['BEGIN'] = ''
@@ -51,20 +57,23 @@ def cplexHaversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, lo
     df['FINAL'] = df['ReturnTime'].dt.strftime("%A, %d. %B %Y %I:%M%p")
     df['BEGIN'] = df['LoadingBeginTime'].dt.strftime("%A, %d. %B %Y %I:%M%p")
     df['Arrival'] = df['ServiceTime'].dt.strftime("%A, %d. %B %Y %I:%M%p")
+    df['BeginTimeWindow'] = df['BeginTimeWindow'].dt.strftime("%A, %d. %B %Y %I:%M%p")
+    df['EndTimeWindow'] = df['EndTimeWindow'].dt.strftime("%A, %d. %B %Y %I:%M%p")
 
     fig = px.timeline(df, 
         x_start=df['LoadingBeginTime'], 
         x_end=df['ReturnTime'], 
         y=df['MixerTruck'], 
-        color=df['OrderId'], 
+        color=df['CodOrder'], 
         hover_data={ 'BEGIN': True, 'FINAL': True, 
             'LoadingBeginTime': False, 'ReturnTime': False, 
             'CodOrder': True, 'MixerTruck': True, 'CodDelivery': True, 'Arrival': True,
-            'DurationOfService': True, 'TravelTime': True, 'LoadingPlant': True },
-        title='Haversine: Profit/Loss = ' + str(totalProfit) + ' and Total MT = ' + str(len(mixerTrucks)))
+            'DurationOfService': True, 'TravelTime': True, 'LoadingPlant': True,
+            'BeginTimeWindow': True, 'EndTimeWindow': True },
+        title='Revenue = ' + str(totalRevenue) + ' | Cost = 57930' + ' | MT Used = ' + str(len(mixerTrucks)))
     fig.update_yaxes(autorange='reversed')
     fig.update_layout(title_font_size=42, font_size=18, title_font_family='Arial')
-    plotly.offline.plot(fig, filename=basePath + '\\CplexHaversineGant_' + dataFolder + '.html')
+    plotly.offline.plot(fig, filename=basePath + '\\CplexGoogleMapsCantuFunesGant_' + dataFolder + '.html')
 
     gmap = gmplot.GoogleMapPlotter(loadingPlaces[0].LATITUDE_FILIAL, loadingPlaces[0].LONGITUDE_FILIAL, 11)
 
@@ -80,4 +89,4 @@ def cplexHaversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, lo
            'cornflowerblue', edge_width = 2.5)
 
     gmap.apikey = googleMapsApiKey
-    gmap.draw(basePath + '\\CplexHaversineMap_' + dataFolder + '.html')
+    gmap.draw(basePath + '\\CplexGoogleMapsCantuFunesMap_' + dataFolder + '.html')

@@ -1,170 +1,208 @@
-// FROM: -
-// AUTORS: Richard Sobreiro
+int nN = ...; // Number of nodes in map
+int nA = ...; // Number of arcs per node
+int nI = ...; // Set of depot nodes
+int nJ = ...; // Set of customer nodes
+int nK = ...; // Number of available vehicles
+int nL = ...; // Maximum number of trips each vehicle can perform
 
-int nLP = ...;
-int nCTM = ...;
-int nCT = ...;
-int nN = nCT + (2 * nLP);
+range I = 1..nI;
+range J = 1..nJ;
+range K = 1..nK;
+range L = 1..nL;
 
-range V = 1..nCTM;
-range N = 1..nN;
-range R = 1..nCT;
+int revenues[J] = ...;
+int codLoadingPlants[I] = ...; 
+int codMixerTrucks[K] = ...;  
+int codOrders[J] = ...;
+int codDeliveries[J] = ...;
 
-float c[N][N] = ...;
-float t[N][N] = ...;
+//float T = ...; // Durantion of the working day
+//float q[I] = ...; // Amount of product i available on each depot
+//float d[J] = ...; // Amount of product requested by customer i
+float a[J] = ...; // Begin of the time window of customer j
+float b[J] = ...; // End of the time window of customer j 
 
-float q = ...;
-float tc[V] = ...; 
+float c[I][J] = ...; // Cost of serving customer j from depot i
+float t[I][J] = ...; // Time for serving customer j from depot i
+float csd[J] = ...; // Customer j service duration
+float ld = 8;
+float MTCOST = 50;
+//int u[K][I] = ...; // If truck k is assigned to depot i 
 
-float d[N] = ...;
-float a[N] = ...;
-float b[N] = ...;
+dvar float x[I][J][K][L]; // If truck k travels from i to j in its lth trip
+dvar float u[K][I]; // If truck k is assigned to depot i
+dvar float mt[K]; // If truck k is used
+dvar float s[K][L]; // Start time of trip l of truck k
 
-float p[N] = ...;
+// 1
+minimize sum(i in I, j in J, k in K, l in L)(c[i][j] * x[i][j][k][l]) + sum(k in K)(mt[k] * MTCOST);
 
-int sd[V] = ...;
-
-float M = ...;
-
-dvar boolean x[N][N][V][R];
-dvar boolean y[V];
-dvar float s[N][V][R];
-
-// 3.1
-maximize sum(k in V)(
-			sum(i in N, r in R)(sum(j in N:(i <= (nN - nLP)) && (j > nLP))((p[j] - c[i][j]) * x[i][j][k][r])) - 
-			(y[k] * tc[k]) - 
-			sum(r in R)(sum(i in N)(sum(j in N: i <= nLP && j > (nN - nLP))(c[i][j] * x[i][j][k][r]))) - 
-			sum(i in N, j in N, k in V, r in R)(t[i][j] * x[i][j][k][r])
-		);
-
-subject to {
-
-	forall(r in R, k in V, i in N, j in N: i == j){
-		x[i][j][k][r] == 0;
+subject to{
+	// 2
+	// 3
+	// 4
+	forall(k in K, l in L: l < nL){
+		s[k][l] + sum(i in I, j in J)(x[i][j][k][l] * ((2 * t[i][j]) + ld + csd[j])) <= s[k][(l+1)];
 	}
-	
-	forall(r in R, k in V, i in N, j in N: (i != j) && (j <= (nN - nLP))){
-		y[k] >= x[i][j][k][r];
+	// 5
+	forall(k in K, l in L){
+		s[k][l] + sum(i in I, j in J)(t[i][j] * x[i][j][k][l]) >= sum(i in I, j in J)(a[j] * x[i][j][k][l]); 	
 	}
-	
-	forall(r in R, k in V, i in N: i <= nLP){
-		x[i][(nN - i + 1)][k][r] == 0;	
+	// 6
+	forall(k in K, l in L){
+		s[k][l] + sum(i in I, j in J)(t[i][j] * x[i][j][k][l]) <= sum(i in I, j in J)(b[j] * x[i][j][k][l]); 	
+	}	
+	// 7
+	forall(i in I, j in J, k in K, l in L){
+		x[i][j][k][l] <= u[k][i];	
 	}
-	
-	forall(k in V, r in R, i in N, j in N: i != sd[k] && i <= nLP && j > nLP) {
-		x[i][j][k][1] == 0;
+	// 8
+	forall(k in K){
+		sum(i in I)(u[k][i]) == 1;	
 	}
-	
-	forall(k in V, r in R, i in N, j in N: i != sd[k] && i <= nLP && j > nLP) {
-		sum(pr in R, ii in N, jj in N: pr < r && ii <= nLP)(x[ii][jj][k][pr]) + (1 - x[i][j][k][r]) >= 1;
-	}
-	
-	// 3.2
-	forall(i in N: i > nLP && i <= (nN - nLP)){
-		sum(r in R, k in V)(sum(j in N: j > nLP)(x[i][j][k][r])) <= 1;	
-	}
-	// 3.3 ?
-	forall(r in R, k in V) {
-		sum(i in N:i <= (nN - nLP))(d[i] * (sum(j in N: (i != j) && (j > nLP))(x[i][j][k][r]))) <= q;
-	}
-	// 3.4
-	/*forall(r in R, k in V, i in N:i <= nLP) {
-		sum(j in N: j > nLP)(x[i][j][k][r]) == 1;
-	}*/
-	// 3.5
-	forall(r in R, k in V, h in N: h > nLP && h <= (nN - nLP)){
-		sum(i in N: i <= (nN - nLP))(x[i][h][k][r]) - sum(j in N: j > nLP)(x[h][j][k][r]) == 0;
-	}
-	// 3.6
-	/*forall(r in R, k in V, j in N: j > (nN - nLP)){
-		sum(i in N: i <= (nN - nLP))(x[i][j][k][r]) == 1;
-	}*/
-	// 3.7
-	forall(r in R, k in V, i in N, j in N: (i != j)) {
-		s[i][k][r] + t[i][j] - M*(1 - x[i][j][k][r]) <= s[j][k][r];
-	}
-	// 3.8 ?
-	forall(r in R, k in V, i in N){
-		a[i] <= s[i][k][r] <= b[i];
+	// 9
+	forall(k in K, l in L){
+		sum(i in I, j in J)(x[i][j][k][l]) <= 1;	
 	}
 	// ?
-	forall(r in R, sr in R, k in V, i in N, j in N: r < nCT && i <= nLP && j > (nN - nLP)  && sr > r) {
-		s[j][k][r] <= s[i][k][(sr)];	
+	forall(j in J){
+		sum(i in I, k in K, l in L)(x[i][j][k][l]) == 1;
 	}
-	// ?
-	forall(k in V, r in R, j in N: (j > (nN - nLP)) && (r < nCT)) {
-		sum(g in N)(x[nN - j + 1][g][k][r+1]) >= sum(h in N)(x[h][j][k][r]);
+	forall(i in I, j in J, k in K, l in L){
+		x[i][j][k][l] <= mt[k];
 	}
-	
-	/*forall(i in N, k in V, r in R){
-		s[i][k][r] >= 0;
-	}*/
+	// Non negativite
+	forall(k in K, l in L){
+		s[k][l] >= 0;
+	}
+	forall(i in I, j in J, k in K, l in L){
+		x[i][j][k][l] >= 0;
+	}
+	forall(i in I, k in K){
+		u[k][i] >= 0;
+	}
+	forall(k in K){
+		mt[k] >= 0;
+	}
 }
 
-tuple Node {
-	int VehicleId;
-	int RouteId;
+tuple Node 
+{
+	key int Delivery;
+	key int MixerTruck;
+	key float LoadingBeginTime;
 	float ServiceTime;
-	int CustomerId;
-	int OriginId;
-	int IsUsed;
+	key float ReturnTime;
+	int OrderId;
+	int LoadingPlant;
+	float Revenue;
+	float BeginTimeWindow;
+	float EndTimeWindow;
+	float TravelTime;
+	float TravelCost;
+	float DurationOfService;
+	int IfDeliveryMustBeServed;
+	int CodLoadingPlant;
+	int CodMixerTruck;
+	int CodDelivery;
+	int CodOrder;
 };
 
 sorted {Node} Nodes = {};
 
-execute 
-{
-	for(var k in V)
+execute {
+
+	for(var i in I)
 	{
-		for(var r in R)
+		for(var j in J) 
 		{
-			for(var i in N) 
+			for(var k in K)
 			{
-				for(var j in N)
+				for(var l in L)
 				{
-					if(x[i][j][k][r] == 1) 
-					{	
-						Nodes.add(k, r, s[j][k][r], j, i, y[k]);
-					}			
-				}			
-			}		
+					if(x[i][j][k][l] == 1)
+					{
+						var Delivery = i;
+						var MixerTruck = k;
+						var LoadingBeginTime = s[k][l];
+						var ServiceTime = s[k][l] + ld + t[i][j]; 
+						var ReturnTime = s[k][l] + ld + t[i][j] + csd[j] + t[i][j];
+						var OrderId = j;
+						var LoadingPlant = i;
+						var Revenue = revenues[j];
+						var BeginTimeWindow = a[j];
+						var EndTimeWindow = b[j];
+						var TravelTime = t[i][j];
+						var TravelCost = c[i][j];
+						var DurationOfService = csd[j];
+						var IfDeliveryMustBeServed = 1;
+						var CodLoadingPlant = codLoadingPlants[i];
+						var CodMixerTruck = codMixerTrucks[k];
+						var CodDelivery = codDeliveries[j];
+						var CodOrder = codOrders[j];
+						Nodes.add(Delivery, MixerTruck, LoadingBeginTime, ServiceTime, ReturnTime, OrderId, LoadingPlant, Revenue, BeginTimeWindow, EndTimeWindow, TravelTime, TravelCost, DurationOfService, IfDeliveryMustBeServed, CodLoadingPlant, CodMixerTruck, CodDelivery, CodOrder);						
+					}								
+				}				
+			}			
 		}
 	}
-	var currentVehicle = -1;
-	var currentRoute = -1;
+	
 	for(var node in Nodes)
 	{
-		if(currentVehicle != node.VehicleId)
-		{
-			currentVehicle = node.VehicleId;
-			writeln("--------------------------------------------------------------------------------------");
-			if(node.IsUsed > 0){
-				writeln("VEHICLE ", currentVehicle);
-			}
-			else{
-				writeln("VEHICLE ", currentVehicle, " IS NOT USED");
-			}
-		}
-		if(currentRoute != node.RouteId)
-		{
-			writeln("-----");
-			currentRoute = node.RouteId;
-			writeln("ROUTE ", currentRoute);
-		}
-		if(node.OriginId <= nLP){
-			writeln("- From [Base](", node.OriginId, ") To (", node.CustomerId, ")");
-		}
-		else if (node.CustomerId > (nN - nLP)){
-			writeln("- From (", node.OriginId, ") To (", node.CustomerId, ")[Base]");
+		writeln("------------------------------------------------------");
+		writeln("MixerTruck: ", node.MixerTruck);
+		writeln("OrderId: ", node.OrderId);
+		writeln("Delivery: ", node.Delivery);
+		writeln("LoadingPlant: ", node.LoadingPlant);	
+		writeln("LoadingBeginTime: ", node.LoadingBeginTime);	
+		writeln("ServiceTime: ", node.ServiceTime);	
+		writeln("ReturnTime: ", node.ReturnTime);
+		writeln("Revenue: ", node.Revenue);
+		writeln("BeginTimeWindow: ", node.BeginTimeWindow);
+		writeln("EndTimeWindow: ", node.EndTimeWindow);
+		writeln("TravelTime: ", node.TravelTime);
+		writeln("TravelCost: ", node.TravelCost);
+		writeln("DurationOfService: ", node.DurationOfService);
+		writeln("IfDeliveryMustBeServed: ", node.IfDeliveryMustBeServed);
+		writeln("CodDelivery: ", node.CodDelivery);
+		writeln("CodOrder: ", node.CodOrder);
+		writeln("------------------------------------------------------");	
+	}
+
+	var f = new IloOplOutputFile("C:\\RMCDP\\Result.json");
+	f.writeln("{");
+	f.writeln("	\"numberOfLoadingPlaces\": ", nI, ",");
+	f.writeln("	\"numberOfMixerTrucks\": ", nK, ",");
+	f.writeln("	\"numberOfDeliveries\": ", nJ, ",");
+	f.writeln("	\"trips\": [");
+	var i = 1;
+	for(var viagem in Nodes){
+		f.writeln("	{");
+		f.writeln("		\"OrderId\": ", viagem.OrderId, ",");
+		f.writeln("		\"Delivery\": ", viagem.Delivery, ",");			
+		f.writeln("		\"MixerTruck\": ", viagem.MixerTruck, ",");
+		f.writeln("		\"LoadingBeginTime\": ", viagem.LoadingBeginTime, ",");
+		f.writeln("		\"ServiceTime\": ", viagem.ServiceTime, ",");
+		f.writeln(" 	\"ReturnTime\": ", viagem.ReturnTime, ",");
+		f.writeln(" 	\"LoadingPlant\": ", viagem.LoadingPlant, ",");
+		f.writeln(" 	\"Revenue\": ", viagem.Revenue, ",");	
+		f.writeln(" 	\"BeginTimeWindow\": ", viagem.BeginTimeWindow, ",");
+		f.writeln(" 	\"EndTimeWindow\": ", viagem.EndTimeWindow, ",");
+		f.writeln(" 	\"TravelTime\": ", viagem.TravelTime, ",");
+		f.writeln(" 	\"TravelCost\": ", viagem.TravelCost, ",");
+		f.writeln(" 	\"DurationOfService\": ", viagem.DurationOfService, ",");
+		f.writeln(" 	\"IfDeliveryMustBeServed\": ", viagem.IfDeliveryMustBeServed, ",");
+		f.writeln("     \"CodDelivery\": ", viagem.CodDelivery, ",");
+		f.writeln("     \"CodOrder\": ", viagem.CodOrder);
+		if (i == nJ) {
+			f.writeln("	}");				
 		}
 		else{
-			writeln("- From (", node.OriginId, ") To (", node.CustomerId, ")");	
+			f.writeln("	},");	
 		}
-		writeln("  ServiceTime: ", s[node.CustomerId][node.VehicleId][node.RouteId]);
-		writeln("  DemanLP: ", d[node.CustomerId]);
-		writeln("  Profit: ", p[node.CustomerId]);
-		writeln("  Cost: ", c[node.OriginId][node.CustomerId]);
-		writeln("  TravelTime: ", t[node.OriginId][node.CustomerId]);
+		i = i + 1;
 	}
+	f.writeln("]");
+	f.writeln("}");	
+	f.close();
 }

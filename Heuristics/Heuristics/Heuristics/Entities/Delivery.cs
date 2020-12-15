@@ -16,8 +16,9 @@ namespace Heuristics.Entities
         public double LATITUDE_OBRA;
         public double LONGITUDE_OBRA;
         public double VLRVENDA;
+        public float MEDIA_M3_DESCARGA;
 
-        public int Distance;
+        public double Distance;
         public int TravelTime;
         public double Cost;
         public DateTime BeginLoadingTime;
@@ -27,6 +28,5 @@ namespace Heuristics.Entities
         public DateTime ArrivalTimeAtLoadingPlace;
         public int Lateness;
         public int CODVEICULO;
-
     }
 }

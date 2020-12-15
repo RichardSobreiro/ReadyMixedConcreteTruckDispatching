@@ -37,8 +37,8 @@ int fdno = ...; // Index of the first delivery of the new order
 
 float M = ...; // Big M for delivery i and j
 
-dvar boolean x[MT][D]; // If concrete mixer truck k attend trip i
-dvar boolean y[MT]; // If concrete mixer truck k is used
+dvar float x[MT][D]; // If concrete mixer truck k attend trip i
+dvar float y[MT]; // If concrete mixer truck k is used
 
 dvar float s[MT][D]; // Service time of mixer truck k in delivery i
 dvar float rs[MT][D]; // Return time of the service for mixer truck k in delivery i
@@ -46,7 +46,7 @@ dvar float ds[D]; // Duration of the service time at construction site for custo
 
 dvar float lbt[D]; // Loading begin time for the delivery i
 
-dvar boolean sbf[D][D]; // Window i begins first than window j
+dvar float sbf[D][D]; // Window i begins first than window j
 
 execute
 {
@@ -63,9 +63,9 @@ subject to {
 		a[i] - a[j] >= -M * (sbf[i][j]);
 	}
 	// ? - If service time window of the delivery i is equal than j
-	forall(k in MT, i in D, j in D: a[i] == a[j] && i != j){
+	/*forall(k in MT, i in D, j in D: a[i] == a[j] && i != j){
 		sbf[i][j] != sbf[j][i];	
-	}
+	}*/
 	// ? - Mixer truck can not serve more than one delivery at the same time
 	forall(k in MT, i in D, j in D){
 		rs[k][i] - lbt[j] <= M * (3 - x[k][i] - x[k][j] - sbf[i][j]);	

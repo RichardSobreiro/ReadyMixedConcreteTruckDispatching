@@ -31,22 +31,22 @@ namespace Heuristics
                 .Where(lp => lp.MixerTrucks.Count > 0)
                 .Select(lp => lp.MixerTrucks.OrderByDescending(mt => mt.index).First())
                 .ToList().FirstOrDefault().index;
-            foreach (LoadingPlace loadingPlace in loadingPlaces)
-            {
-                if (loadingPlace.MixerTrucks.Count > 0)
-                {
-                    List<MixerTruck> mixers = new List<MixerTruck>();
-                    for(int i = 0; i < 200; i++)
-                    {
-                        MixerTruck newMixerTruck = loadingPlace.MixerTrucks[0].Clone();
-                        newMixerTruck.EndOfTheLastService = DateTime.MinValue;
-                        newMixerTruck.index += maxLoadingPlaceIndex + 1 + i;
-                        maxLoadingPlaceIndex += i + 1;
-                        mixers.Add(newMixerTruck);
-                    }
-                    loadingPlace.MixerTrucks.AddRange(mixers);
-                }
-            }
+            //foreach (LoadingPlace loadingPlace in loadingPlaces)
+            //{
+            //    if (loadingPlace.MixerTrucks.Count > 0)
+            //    {
+            //        List<MixerTruck> mixers = new List<MixerTruck>();
+            //        for(int i = 0; i < 200; i++)
+            //        {
+            //            MixerTruck newMixerTruck = loadingPlace.MixerTrucks[0].Clone();
+            //            newMixerTruck.EndOfTheLastService = DateTime.MinValue;
+            //            newMixerTruck.index += maxLoadingPlaceIndex + 1 + i;
+            //            maxLoadingPlaceIndex += i + 1;
+            //            mixers.Add(newMixerTruck);
+            //        }
+            //        loadingPlace.MixerTrucks.AddRange(mixers);
+            //    }
+            //}
 
             foreach (Order order in orders)
             {
@@ -93,6 +93,7 @@ namespace Heuristics
             foreach (Order order in orders)
             {
                 bool orderCouldBeServed = false;
+                int deliveryNotServerCod = 0;
                 foreach (LoadingPlaceInfo loadingPlaceInfo in order.LoadingPlaceInfos)
                 {
                     LoadingPlace loadingPlace = loadingPlaces.FirstOrDefault(lp => lp.CODCENTCUS == loadingPlaceInfo.CODCENTCUS &&
@@ -102,13 +103,14 @@ namespace Heuristics
                         foreach (Delivery delivery in order.TRIPS)
                         {
                             if (DetermineMixerTruck(delivery, loadingPlace, loadingPlaceInfo, FIXED_LOADING_TIME,
-                                FIXED_CUSTOMER_FLOW_RATE, FIXED_L_PER_KM, DEFAULT_DIESEL_COST))
+                                order.MEDIA_M3_DESCARGA, FIXED_L_PER_KM, DEFAULT_DIESEL_COST))
                             {
                                 orderCouldBeServed = true;
                             }
                             else
                             {
                                 orderCouldBeServed = false;
+                                deliveryNotServerCod = delivery.CODPROGVIAGEM;
                                 break;
                             }
                         }
@@ -125,7 +127,8 @@ namespace Heuristics
                 }
                 if (orderCouldBeServed == false)
                 {
-                    Console.WriteLine($"Order {order.CODPROGRAMACAO} could not be served...");
+                    Console.WriteLine($"Delivery {deliveryNotServerCod} of the Order {order.CODPROGRAMACAO} could not be served...");
+                    deliveryNotServerCod = 0;
                 }
                 deliveryResults.AddRange(order.TRIPS);
             }
@@ -258,7 +261,7 @@ namespace Heuristics
                     ReturnTime = ((delivery.ArrivalTimeAtLoadingPlace.Day - delivery.BeginLoadingTime.Day) * 24 * 60) +
                         (delivery.ArrivalTimeAtLoadingPlace.Hour * 60) + delivery.ArrivalTimeAtLoadingPlace.Minute,
                     LoadingPlant = delivery.CODCENTCUSVIAGEM,
-                    Revenue = (int)((delivery.VLRVENDA * delivery.VALVOLUMEPROG) - delivery.Cost),
+                    Revenue = (int)((delivery.VLRVENDA * delivery.VALVOLUMEPROG)),
                     BeginTimeWindow = (delivery.BeginLoadingTime.Hour * 60) + delivery.BeginLoadingTime.Minute,
                     EndTimeWindow = ((delivery.ArrivalTimeAtLoadingPlace.Day - delivery.BeginLoadingTime.Day) * 24 * 60) +
                         (delivery.ArrivalTimeAtLoadingPlace.Hour * 60) + delivery.ArrivalTimeAtLoadingPlace.Minute,
@@ -271,7 +274,7 @@ namespace Heuristics
                     Lateness = delivery.Lateness
                 });
             }
-            result.objective = (int)(result.trips.Sum(rt => rt.Revenue) - (result.numberOfMixerTrucks * FIXED_MIXED_TRUCK_COST));
+            result.objective = (int)(result.trips.Sum(rt => rt.TravelCost) + (result.numberOfMixerTrucks * FIXED_MIXED_TRUCK_COST));
             string jsonString = JsonSerializer.Serialize(result);
             File.WriteAllText(folderPath + "\\ResultNoTruckLimitationHeuristic.json", jsonString);
         }

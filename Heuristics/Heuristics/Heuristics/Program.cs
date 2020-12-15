@@ -4,6 +4,7 @@ using Heuristics.Entities;
 using Heuristics.Entities.MapsGoogle;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -15,7 +16,10 @@ namespace Heuristics
     {
         static void Main(string[] args)
         {
-            string instanceName = "SP-13-06-2019\\";
+            Stopwatch watch = new Stopwatch();
+            watch.Start();
+
+            string instanceName = "SP-20-01-2020\\";
             string folderPath = "C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\" + instanceName;
             double DEFAULT_DIESEL_COST = 3.5;
             double DEFAULT_RMC_COST = 150;
@@ -116,7 +120,8 @@ namespace Heuristics
                         CUSVAR = csvRow.CUSVAR,
                         VLRVENDA = csvRow.VLRVENDA,
                         LATITUDE_OBRA = csvRow.LATITUDE_OBRA,
-                        LONGITUDE_OBRA = csvRow.LONGITUDE_OBRA
+                        LONGITUDE_OBRA = csvRow.LONGITUDE_OBRA,
+                        MEDIA_M3_DESCARGA = csvRow.MEDIA_M3_DESCARGA
                     };
                     deliveries.Add(delivery);
                 }
@@ -144,11 +149,22 @@ namespace Heuristics
             //    FIXED_MIXED_TRUCK_CAPACIT_M3, FIXED_L_PER_KM, FIXED_LOADING_TIME,
             //    FIXED_CUSTOMER_FLOW_RATE);
 
-            NoTruckLimitationHeuristicGoogleMaps.Execute(folderPath, loadingPlaces, mixerTrucks,
+            //NoTruckLimitationHeuristicGoogleMaps.Execute(folderPath, loadingPlaces, mixerTrucks,
+            //    orders, deliveries, trafficInfo,
+            //    DEFAULT_DIESEL_COST, DEFAULT_RMC_COST, FIXED_MIXED_TRUCK_COST,
+            //    FIXED_MIXED_TRUCK_CAPACIT_M3, FIXED_L_PER_KM, FIXED_LOADING_TIME,
+            //    FIXED_CUSTOMER_FLOW_RATE);
+
+            DeliveryByDeliveryAllocationHeuristicGoogleMaps.Execute(folderPath, loadingPlaces, mixerTrucks,
                 orders, deliveries, trafficInfo,
                 DEFAULT_DIESEL_COST, DEFAULT_RMC_COST, FIXED_MIXED_TRUCK_COST,
-                FIXED_MIXED_TRUCK_CAPACIT_M3, FIXED_L_PER_KM, FIXED_LOADING_TIME,
-                FIXED_CUSTOMER_FLOW_RATE);
+                FIXED_MIXED_TRUCK_CAPACIT_M3, FIXED_L_PER_KM, FIXED_LOADING_TIME);
+
+            watch.Stop();
+
+            TimeSpan timeSpan = watch.Elapsed;
+
+            Console.WriteLine("Time: {0}h {1}m {2}s {3}ms", timeSpan.Hours, timeSpan.Minutes, timeSpan.Seconds, timeSpan.Milliseconds);
         }
     }
 }

@@ -27,7 +27,9 @@ def simpleHeuristicResults(fileName, basePath, dataFolder, googleMapsApiKey, del
 
     mixerTrucksCount = []
     mixerTruckIndex = 1
+    totalRevenue = 0
     for index, row in df.iterrows():
+        totalRevenue += float(row['Revenue'])
         mixerTruck = next((cod for cod in mixerTrucksCount if cod == row['MixerTruck']), None)
         if mixerTruck == None:
             mixerTrucksCount.append(row['MixerTruck'])
@@ -39,10 +41,16 @@ def simpleHeuristicResults(fileName, basePath, dataFolder, googleMapsApiKey, del
         df.at[index, 'ReturnTime'] = row['ReturnTime']
         row['ServiceTime'] = startTime + timedelta(minutes=float(row['ServiceTime']))
         df.at[index, 'ServiceTime'] = row['ServiceTime']
+        row['BeginTimeWindow'] = startTime + timedelta(minutes=row['BeginTimeWindow'])
+        df.at[index, 'BeginTimeWindow'] = row['BeginTimeWindow']
+        row['EndTimeWindow'] = startTime + timedelta(minutes=row['EndTimeWindow'])
+        df.at[index, 'EndTimeWindow'] = row['EndTimeWindow']
 
     df['ReturnTime'] = pd.to_datetime(df['ReturnTime'])
     df['LoadingBeginTime'] = pd.to_datetime(df['LoadingBeginTime'])
     df['ServiceTime'] = pd.to_datetime(df['ServiceTime'])
+    df['BeginTimeWindow'] = pd.to_datetime(df['BeginTimeWindow'])
+    df['EndTimeWindow'] = pd.to_datetime(df['EndTimeWindow'])
 
     df['FINAL'] = ''
     df['BEGIN'] = ''
@@ -50,6 +58,8 @@ def simpleHeuristicResults(fileName, basePath, dataFolder, googleMapsApiKey, del
     df['FINAL'] = df['ReturnTime'].dt.strftime("%A, %d. %B %Y %I:%M%p")
     df['BEGIN'] = df['LoadingBeginTime'].dt.strftime("%A, %d. %B %Y %I:%M%p")
     df['Arrival'] = df['ServiceTime'].dt.strftime("%A, %d. %B %Y %I:%M%p")
+    df['BeginTimeWindow'] = df['BeginTimeWindow'].dt.strftime("%A, %d. %B %Y %I:%M%p")
+    df['EndTimeWindow'] = df['EndTimeWindow'].dt.strftime("%A, %d. %B %Y %I:%M%p")
 
     fig = px.timeline(df, 
         x_start=df['LoadingBeginTime'], 
@@ -59,8 +69,9 @@ def simpleHeuristicResults(fileName, basePath, dataFolder, googleMapsApiKey, del
         hover_data={ 'BEGIN': True, 'FINAL': True, 
             'LoadingBeginTime': False, 'ReturnTime': False, 
             'CodOrder': True, 'MixerTruck': True, 'CodDelivery': True, 'Lateness': True, 'Arrival': True,
-            'DurationOfService': True, 'TravelTime': True, 'LoadingPlant': True },
-        title='Haversine: Profit/Loss = '+ str(tripsJson['objective']) + ' and Total MT = ' + str(len(mixerTrucksCount)))
+            'DurationOfService': True, 'TravelTime': True, 'LoadingPlant': True,
+            'BeginTimeWindow': True, 'EndTimeWindow': True },
+        title='Revenue = ' + str(totalRevenue) + ' | Cost = ' + str(tripsJson['objective']) + ' | MT Used = ' + str(len(mixerTrucksCount)))
     fig.update_yaxes(autorange='reversed')
     fig.update_layout(title_font_size=42, font_size=18, title_font_family='Arial')
     plotly.offline.plot(fig, filename=basePath + '\\SimpleHeuristic' + fileName + 'Gant_' + dataFolder + '.html')

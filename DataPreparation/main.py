@@ -6,12 +6,13 @@ from datetime import datetime
 import googlemaps
 import json
 
-from realData import realData
+from googleMapsFirstModelData import googleMapsFirstModelData
+from googleMapsSecondModelData import googleMapsSecondModelData
 from haversineData import haversineData
 from classes import LoadingPlace, MixerTruck, Order, Delivery, DirectionResult
 
 def main(argv):
-    dataFolder = 'SP-13-06-2019'
+    dataFolder = 'SP-20-01-2020'
     basePath = 'C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\' + dataFolder
     DEFAULT_DIESEL_COST = 3.5
     DEFAULT_RMC_COST = 150
@@ -72,11 +73,15 @@ def main(argv):
             order.TRIPS.append(delivery)
             deliveries.append(delivery)
 
-    realData(mixerTrucks, loadingPlaces, deliveries, orders, 
-        NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
-        FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath)
+    # googleMapsFirstModelData(mixerTrucks, loadingPlaces, deliveries, orders, 
+    #     NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
+    #     FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath)
     
-    haversineData(mixerTrucks, loadingPlaces, deliveries, orders, 
+    # haversineData(mixerTrucks, loadingPlaces, deliveries, orders, 
+    #     NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
+    #     FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath)
+
+    googleMapsSecondModelData(mixerTrucks, loadingPlaces, deliveries, orders, 
         NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
         FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath)
 
