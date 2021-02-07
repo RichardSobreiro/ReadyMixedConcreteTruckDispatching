@@ -25,7 +25,7 @@ float b[J] = ...; // End of the time window of customer j
 float c[I][J] = ...; // Cost of serving customer j from depot i
 float t[I][J] = ...; // Time for serving customer j from depot i
 float csd[J] = ...; // Customer j service duration
-float ld = 8;
+float ld = 4;
 float MTCOST = 50;
 //int u[K][I] = ...; // If truck k is assigned to depot i 
 
@@ -46,11 +46,11 @@ subject to{
 	}
 	// 5
 	forall(k in K, l in L){
-		s[k][l] + sum(i in I, j in J)(t[i][j] * x[i][j][k][l]) >= sum(i in I, j in J)(a[j] * x[i][j][k][l]); 	
+		s[k][l] + sum(i in I, j in J)((t[i][j] + ld) * x[i][j][k][l]) >= sum(i in I, j in J)(a[j] * x[i][j][k][l]); 	
 	}
 	// 6
 	forall(k in K, l in L){
-		s[k][l] + sum(i in I, j in J)(t[i][j] * x[i][j][k][l]) <= sum(i in I, j in J)(b[j] * x[i][j][k][l]); 	
+		s[k][l] + sum(i in I, j in J)((t[i][j]+ ld) * x[i][j][k][l]) <= sum(i in I, j in J)(b[j] * x[i][j][k][l]); 	
 	}	
 	// 7
 	forall(i in I, j in J, k in K, l in L){

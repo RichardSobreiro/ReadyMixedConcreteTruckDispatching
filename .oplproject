@@ -33,7 +33,7 @@
 			<ref name="VRPTWMultiTrips.ops" type="setting">
 			</ref>
 		</config>
-		<config default="true" name="MDVRPTWMultiTrips" category="opl">
+		<config default="false" name="MDVRPTWMultiTrips" category="opl">
 			<ref name="MDVRPTWMultiTrips.dat" type="data">
 			</ref>
 			<ref name="MDVRPTWMultiTrips.mod" type="model">
@@ -49,6 +49,12 @@
 			<ref name="RMCTDP_Simple.mod" type="model">
 			</ref>
 			<ref name="RMCTDP_Simple.dat" type="data">
+			</ref>
+		</config>
+		<config default="true" name="Combinations" category="opl">
+			<ref name="Combinations.mod" type="model">
+			</ref>
+			<ref name="Combinations.dat" type="data">
 			</ref>
 		</config>
 	</configs>

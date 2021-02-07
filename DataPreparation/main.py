@@ -8,11 +8,12 @@ import json
 
 from googleMapsFirstModelData import googleMapsFirstModelData
 from googleMapsSecondModelData import googleMapsSecondModelData
+from googleMapsCombinations import googleMapsCombinations
 from haversineData import haversineData
 from classes import LoadingPlace, MixerTruck, Order, Delivery, DirectionResult
 
 def main(argv):
-    dataFolder = 'SP-20-01-2020'
+    dataFolder = 'PEQUENA - AP-GOIANIA-13-06-2019'
     basePath = 'C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\' + dataFolder
     DEFAULT_DIESEL_COST = 3.5
     DEFAULT_RMC_COST = 150
@@ -62,9 +63,9 @@ def main(argv):
 
         delivery = next((v for v in deliveries if v.CODPROGVIAGEM == row['CODPROGVIAGEM']), None)
         if delivery == None:
-            constructionTime = datetime.strptime(row['HORCHEGADAOBRA'], '%m/%d/%y %H:%M %p')
+            #constructionTime = datetime.strptime(row['HORCHEGADAOBRA'], '%m/%d/%y %H:%M %p')
             #constructionTime = datetime.strptime(row['HORCHEGADAOBRA'], '%Y-%m-%d %H:%M:%S')
-            #constructionTime = datetime.strptime(row['HORCHEGADAOBRA'], '%m/%d/%Y %H:%M')
+            constructionTime = datetime.strptime(row['HORCHEGADAOBRA'], '%m/%d/%Y %H:%M')
             minutes = (constructionTime.hour * 60) + constructionTime.minute
             delivery = Delivery(HORCHEGADAOBRA = minutes, CODPROGRAMACAO=row['CODPROGRAMACAO'], CODPROGVIAGEM=row['CODPROGVIAGEM'], 
                 CODCENTCUSVIAGEM=row['CODCENTCUSVIAGEM'], VLRTOTALNF=row['VLRTOTALNF'], VALVOLUMEPROG=row['VALVOLUMEPROG'], 
@@ -81,7 +82,11 @@ def main(argv):
     #     NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
     #     FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath)
 
-    googleMapsSecondModelData(mixerTrucks, loadingPlaces, deliveries, orders, 
+    # googleMapsSecondModelData(mixerTrucks, loadingPlaces, deliveries, orders, 
+    #     NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
+    #     FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath)
+    
+    googleMapsCombinations(mixerTrucks, loadingPlaces, deliveries, orders, 
         NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
         FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath)
 
