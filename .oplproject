@@ -51,10 +51,16 @@
 			<ref name="RMCTDP_Simple.dat" type="data">
 			</ref>
 		</config>
-		<config default="true" name="Combinations" category="opl">
+		<config default="false" name="Combinations" category="opl">
 			<ref name="Combinations.mod" type="model">
 			</ref>
 			<ref name="Combinations.dat" type="data">
+			</ref>
+		</config>
+		<config default="true" name="Bianchessi" category="opl">
+			<ref name="Bianchessi.mod" type="model">
+			</ref>
+			<ref name="Bianchessi.dat" type="data">
 			</ref>
 		</config>
 	</configs>

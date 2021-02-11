@@ -19,7 +19,7 @@ namespace Heuristics
             Stopwatch watch = new Stopwatch();
             watch.Start();
 
-            string instanceName = "SP-20-01-2020\\";
+            string instanceName = "PEQUENA - GDE-TIJUCAS-15-06-2019\\";
             string folderPath = "C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\" + instanceName;
             double DEFAULT_DIESEL_COST = 3.5;
             double DEFAULT_RMC_COST = 150;
@@ -155,10 +155,12 @@ namespace Heuristics
             //    FIXED_MIXED_TRUCK_CAPACIT_M3, FIXED_L_PER_KM, FIXED_LOADING_TIME,
             //    FIXED_CUSTOMER_FLOW_RATE);
 
-            DeliveryByDeliveryAllocationHeuristicGoogleMaps.Execute(folderPath, loadingPlaces, mixerTrucks,
+            Result result = DeliveryByDeliveryAllocationHeuristicGoogleMaps.Execute(folderPath, loadingPlaces, mixerTrucks,
                 orders, deliveries, trafficInfo,
                 DEFAULT_DIESEL_COST, DEFAULT_RMC_COST, FIXED_MIXED_TRUCK_COST,
                 FIXED_MIXED_TRUCK_CAPACIT_M3, FIXED_L_PER_KM, FIXED_LOADING_TIME);
+
+            //ConstructiveHeuristicWithImprovementPhaseOne.Execute(folderPath, result);
 
             watch.Stop();
 

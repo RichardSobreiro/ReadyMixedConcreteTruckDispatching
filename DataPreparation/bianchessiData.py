@@ -28,7 +28,7 @@ def convert_dictionary_directions_results_to_array(directionsResultsStored):
         directionsResults.append(directionResult)
     return directionsResults
 
-def googleMapsSecondModelData(mixerTrucks, loadingPlaces, deliveries, orders, 
+def bianchessiData(mixerTrucks, loadingPlaces, deliveries, orders, 
     NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
     FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath):
     googleApiKeyPathFile = 'C:\GoogleApiKey\key.txt'
@@ -36,6 +36,11 @@ def googleMapsSecondModelData(mixerTrucks, loadingPlaces, deliveries, orders,
     lines = fileGmapsKey.readlines()
     googleMapsApiKey = lines[0]
     gmaps = googlemaps.Client(key=googleMapsApiKey)
+
+    REF_CODCENTCUS = 166020
+
+    #loadingPlaces = next((cod for cod in mixerTrucks if cod == REF_CODCENTCUS), None)
+    loadingPlaces = [d for d in loadingPlaces if d.CODCENTCUS == REF_CODCENTCUS]
 
     with open(basePath + '\\DirectionsResultsStored.json') as infile:
         directionsResultsStored = json.load(infile)
@@ -69,7 +74,6 @@ def googleMapsSecondModelData(mixerTrucks, loadingPlaces, deliveries, orders,
                     directionResult.TimeString = order.HORSAIDACENTRAL
                     directionResult.Result = ''
                     directionResult.RealResult = True
-                    #directionResult.Result = directions_result
                 else:
                     loadingPlace.DISTANCE = round(hs.haversine(loadingPlaceLatLong, constructionSiteLatLong),1)
                     loadingPlace.TRAVELTIME = loadingPlace.DISTANCE * 2
@@ -98,152 +102,71 @@ def googleMapsSecondModelData(mixerTrucks, loadingPlaces, deliveries, orders,
             loadingPlaceInfo.TRAVELTIME = loadingPlace.TRAVELTIME
             order.LOADINGPLACES_INFO.append(loadingPlaceInfo)
 
-    nN = len(loadingPlaces) + len(deliveries)
-    nA = len(loadingPlaces) + len(deliveries)
-    nI = len(loadingPlaces)
-    nJ = len(deliveries)
-    nK = len(mixerTrucks)
-    nL = 8
-    revenues = np.zeros((len(deliveries)))
-    codLoadingPlants = np.zeros((len(loadingPlaces)))
-    codMixerTrucks = np.zeros((len(mixerTrucks)))
-    codOrders = np.zeros((len(deliveries)))
-    codDeliveries = np.zeros((len(deliveries)))
-    a = np.zeros((len(deliveries)))
-    b = np.zeros((len(deliveries)))
-    c = np.zeros((len(loadingPlaces), len(deliveries)))
-    t = np.zeros((len(loadingPlaces), len(deliveries)))
-    csd = np.zeros((len(deliveries)))
+    nN = (2*len(loadingPlaces)) + len(deliveries)
+    m = len(mixerTrucks)
+    Tmax = 1500
 
-    u = np.zeros((len(mixerTrucks), len(loadingPlaces)))
+    p = np.zeros(nN)
+    t = np.zeros((nN, nN))
+    t0 = np.zeros((nN, nN))
 
     i = 0
-    for lp in loadingPlaces:
-        codLoadingPlants[i] = lp.CODCENTCUS
+    while i < 39:
+        if i == 0 or i == (nN - 1):
+            p[i] = 0
+            i += 1
+        else:
+            for order in orders:
+                loadingPlaceInfo = next((lpo for lpo in order.LOADINGPLACES_INFO if lpo.CODCENTCUS == REF_CODCENTCUS), None)
+                if order.MEDIA_M3_DESCARGA == None or order.MEDIA_M3_DESCARGA <= 2:
+                    order.MEDIA_M3_DESCARGA = 4
+                for dl in order.TRIPS:
+                    distance = loadingPlaceInfo.DISTANCE
+                    if dl.CUSVAR == 0 or dl.CUSVAR == None:
+                        dl.CUSVAR = DEFAULT_RMC_COST
+                    cost = (dl.CUSVAR * dl.VALVOLUMEPROG) + (distance * FIXED_L_PER_KM * DEFAULT_DIESEL_COST * 2)
+                    p[i] = int(dl.VLRVENDA) * int(dl.VALVOLUMEPROG) - cost
+                    i += 1
+
+    i = 0
+    while i < nN:
         j = 0
-        for order in orders:
-            loadingPlaceInfo = next((lpo for lpo in order.LOADINGPLACES_INFO if lp.CODCENTCUS == lpo.CODCENTCUS), None)
-            if order.MEDIA_M3_DESCARGA == None or order.MEDIA_M3_DESCARGA <= 2:
-                order.MEDIA_M3_DESCARGA = 4
-            for dl in order.TRIPS:
-                a[j] = dl.HORCHEGADAOBRA
-                b[j] = dl.HORCHEGADAOBRA + 15
-                t[i][j] = loadingPlaceInfo.TRAVELTIME
-                distance = loadingPlaceInfo.DISTANCE
-                if dl.CUSVAR == 0 or dl.CUSVAR == None:
-                    dl.CUSVAR = DEFAULT_RMC_COST
-                cost = (dl.CUSVAR * dl.VALVOLUMEPROG) + (distance * FIXED_L_PER_KM * DEFAULT_DIESEL_COST * 2)
-                c[i][j] = round(cost)
-                revenues[j] = int(dl.VLRVENDA) * int(dl.VALVOLUMEPROG)
-                codOrders[j] = order.CODPROGRAMACAO
-                codDeliveries[j] = dl.CODPROGVIAGEM
-                csd[j] = order.MEDIA_M3_DESCARGA * dl.VALVOLUMEPROG
+        while j < nN:
+            if (i == 0 and j == 0) or (i == 0 and j != (nN)) or (j == 0 and (i != (nN))):
+                t[i][j] = 0
+                j += 1
+            elif (i == 0 and j != 0 and j != (nN)) or (j == (nN) and i != 0 and i != (nN)):
+                for order in orders:
+                    loadingPlaceInfo = next((lpo for lpo in order.LOADINGPLACES_INFO if lpo.CODCENTCUS == REF_CODCENTCUS), None)
+                    if order.MEDIA_M3_DESCARGA == None or order.MEDIA_M3_DESCARGA <= 2:
+                        order.MEDIA_M3_DESCARGA = 4
+                    for dl in order.TRIPS:
+                        t[i][j] = loadingPlaceInfo.TRAVELTIME
+                        j += 1
+            else:
+                t[i][j] = 1000
                 j += 1
         i += 1
     
-    for k in range(len(mixerTrucks)):
-        codMixerTrucks[k] = mixerTrucks[k].CODVEICULO
-        loadingPlaceMixerTruck = next((lp for lp in loadingPlaces if lp.CODCENTCUS == mixerTrucks[k].CODCENTCUS), None)
-        u[k][(loadingPlaceMixerTruck.index - 1)] = 1
+    i = 0
+    j = 0
+    for i in range(nN):
+        for j in range(nN):
+            t0[i][j] = t[0][j] + t[i][j]
 
-    datfile = open(basePath + '\\RMCTDP_Simple_Ref_GoogleMaps.dat', 'w+')
+    datfile = open(basePath + '\\RMCTDP_Bianchessi.dat', 'w+')
 
     datfile.write('nN = ' + str(nN) + ';\n')
-    datfile.write('nA = ' + str(nA) + ';\n')
-    datfile.write('nI = ' + str(nI) + ';\n')
-    datfile.write('nJ = ' + str(nJ) + ';\n')
-    datfile.write('nK = ' + str(nK) + ';\n')
-    datfile.write('nL = ' + str(nL) + ';\n')
-
-    # datfile.write('u = [\n')
-    # i = 0
-    # while i < nK:
-    #     strCLine = ''
-    #     strCLine = '[' + str(int(u[i][0]))
-    #     j = 1
-    #     while j < nI:
-    #         strCLine += (', ' + str(int(u[i][j])))
-    #         j += 1
-    #     if i == (nK - 1):
-    #         strCLine += ']\n'
-    #     else:
-    #         strCLine += '],\n'
-    #     datfile.write(strCLine)
-    #     i += 1
-    # datfile.write('];\n')
+    datfile.write('m = ' + str(m) + ';\n')
+    datfile.write('Tmax = ' + str(Tmax) + ';\n')
 
     i = 1
-    strrevenues = 'revenues = [' + str(int(revenues[0]))
+    strp = 'p = [' + str(int(p[0]))
     while i < (nJ):
-        strrevenues += ', ' + str(int(revenues[i]))
+        strp += ', ' + str(int(p[i]))
         i += 1
-    strrevenues += '];\n'
-    datfile.write(strrevenues)
-
-    i = 1
-    strcodLoadingPlants = 'codLoadingPlants = [' + str(int(codLoadingPlants[0]))
-    while i < (nI):
-        strcodLoadingPlants += ', ' + str(int(codLoadingPlants[i]))
-        i += 1
-    strcodLoadingPlants += '];\n'
-    datfile.write(strcodLoadingPlants)
-
-    i = 1
-    strcodMixerTrucks = 'codMixerTrucks = [' + str(int(codMixerTrucks[0]))
-    while i < (nK):
-        strcodMixerTrucks += ', ' + str(int(codMixerTrucks[i]))
-        i += 1
-    strcodMixerTrucks += '];\n'
-    datfile.write(strcodMixerTrucks)
-
-    i = 1
-    strcodOrders = 'codOrders = [' + str(int(codOrders[0]))
-    while i < (nJ):
-        strcodOrders += ', ' + str(int(codOrders[i]))
-        i += 1
-    strcodOrders += '];\n'
-    datfile.write(strcodOrders)
-
-    i = 1
-    strcodDeliveries = 'codDeliveries = [' + str(int(codDeliveries[0]))
-    while i < (nJ):
-        strcodDeliveries += ', ' + str(int(codDeliveries[i]))
-        i += 1
-    strcodDeliveries += '];\n'
-    datfile.write(strcodDeliveries)
-
-    i = 1
-    stra = 'a = [' + str(int(a[0]))
-    while i < (nJ):
-        stra += ', ' + str(int(a[i]))
-        i += 1
-    stra += '];\n'
-    datfile.write(stra)
-    
-    i = 1
-    strb = 'b = [' + str(int(b[0]))
-    while i < (nJ):
-        strb += ', ' + str(int(b[i]))
-        i += 1
-    strb += '];\n'
-    datfile.write(strb)
-
-    datfile.write('c = [\n')
-    i = 0
-    while i < nI:
-        strCLine = ''
-        strCLine = '[' + str(int(c[i][0]))
-        j = 1
-        while j < nJ:
-            strCLine += (', ' + str(int(c[i][j])))
-            j += 1
-        if i == (nI - 1):
-            strCLine += ']\n'
-        else:
-            strCLine += '],\n'
-        datfile.write(strCLine)
-        i += 1
-    datfile.write('];\n')
+    strp += '];\n'
+    datfile.write(strp)
 
     datfile.write('t = [\n')
     i = 0
@@ -261,11 +184,20 @@ def googleMapsSecondModelData(mixerTrucks, loadingPlaces, deliveries, orders,
         datfile.write(strTLine)
         i += 1
     datfile.write('];\n')
-
-    i = 1
-    strcsd = 'csd = [' + str(int(csd[0]))
-    while i < (nJ):
-        strcsd += ', ' + str(int(csd[i]))
+    
+    datfile.write('t0 = [\n')
+    i = 0
+    while i < nI:
+        strTLine = ''
+        strTLine = '[' + str(int(t0[i][0]))
+        j = 1
+        while j < nJ:
+            strTLine += (', ' + str(int(t0[i][j])))
+            j += 1
+        if i == (nI - 1):
+            strTLine += ']\n'
+        else:
+            strTLine += '],\n'
+        datfile.write(strTLine)
         i += 1
-    strcsd += '];\n'
-    datfile.write(strcsd)
+    datfile.write('];\n')

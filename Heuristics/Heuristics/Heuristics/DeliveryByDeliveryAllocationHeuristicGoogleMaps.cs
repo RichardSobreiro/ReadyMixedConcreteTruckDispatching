@@ -1,7 +1,9 @@
-﻿using Heuristics.Entities;
+﻿using CsvHelper;
+using Heuristics.Entities;
 using Heuristics.Entities.MapsGoogle;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -11,7 +13,7 @@ namespace Heuristics
 {
     public class DeliveryByDeliveryAllocationHeuristicGoogleMaps
     {
-        public static void Execute(string folderPath, List<LoadingPlace> loadingPlaces, List<MixerTruck> mixerTrucks,
+        public static Result Execute(string folderPath, List<LoadingPlace> loadingPlaces, List<MixerTruck> mixerTrucks,
             List<Order> orders, List<Delivery> deliveries, TrafficInfo trafficInfo,
             double DEFAULT_DIESEL_COST, double DEFAULT_RMC_COST, double FIXED_MIXED_TRUCK_COST,
             double FIXED_MIXED_TRUCK_CAPACIT_M3, double FIXED_L_PER_KM, int FIXED_LOADING_TIME)
@@ -89,7 +91,7 @@ namespace Heuristics
             foreach (Delivery delivery in deliveryResults)
             {
                 delivery.Cost = ((delivery.CUSVAR * delivery.VALVOLUMEPROG) +
-                (delivery.Distance * FIXED_L_PER_KM * 2 * DEFAULT_DIESEL_COST));
+                    (delivery.Distance * FIXED_L_PER_KM * 2 * DEFAULT_DIESEL_COST));
                 delivery.ArrivalTimeAtConstruction = delivery.HORCHEGADAOBRA;
                 delivery.BeginLoadingTime =
                     delivery.ArrivalTimeAtConstruction.
@@ -175,11 +177,11 @@ namespace Heuristics
             }
             #endregion
 
-            WriteResults(deliveryResults, loadingPlaces,
+            return WriteResults(deliveryResults, loadingPlaces,
                 FIXED_MIXED_TRUCK_COST, folderPath);
         }
 
-        static void WriteResults(List<Delivery> deliveryResults, List<LoadingPlace> loadingPlaces,
+        static Result WriteResults(List<Delivery> deliveryResults, List<LoadingPlace> loadingPlaces,
             double FIXED_MIXED_TRUCK_COST, string folderPath)
         {
             List<int> codVeiculos = deliveryResults.GroupBy(dr => dr.CODVEICULO).Select(d => d.Key).ToList();
@@ -229,6 +231,21 @@ namespace Heuristics
             result.objective = (int)(result.trips.Sum(rt => rt.TravelCost) + (result.numberOfMixerTrucks * FIXED_MIXED_TRUCK_COST));
             string jsonString = JsonSerializer.Serialize(result);
             File.WriteAllText(folderPath + "\\ResultDeliveryByDeliveryAllocationHeuristic.json", jsonString);
+
+            SaveToCsv<Result.ResultTrip>(result.trips, folderPath + "\\ResultDeliveryByDeliveryAllocationHeuristic.csv");
+
+            return result;
+        }
+
+        static void SaveToCsv<T>(List<T> reportData, string path)
+        {
+            var lines = new List<string>();
+            IEnumerable<PropertyDescriptor> props = TypeDescriptor.GetProperties(typeof(T)).OfType<PropertyDescriptor>();
+            var header = string.Join(",", props.ToList().Select(x => x.Name));
+            lines.Add(header);
+            var valueLines = reportData.Select(row => string.Join(",", header.Split(',').Select(a => row.GetType().GetProperty(a).GetValue(row, null))));
+            lines.AddRange(valueLines);
+            File.WriteAllLines(path, lines.ToArray());
         }
     }
 }

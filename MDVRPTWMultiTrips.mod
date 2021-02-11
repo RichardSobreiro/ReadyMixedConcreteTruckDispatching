@@ -25,7 +25,7 @@ float b[J] = ...; // End of the time window of customer j
 float c[I][J] = ...; // Cost of serving customer j from depot i
 float t[I][J] = ...; // Time for serving customer j from depot i
 float csd[J] = ...; // Customer j service duration
-float ld = 4;
+float ld = 8;
 float MTCOST = 50;
 //int u[K][I] = ...; // If truck k is assigned to depot i 
 
@@ -128,7 +128,7 @@ execute {
 						var ServiceTime = s[k][l] + ld + t[i][j]; 
 						var ReturnTime = s[k][l] + ld + t[i][j] + csd[j] + t[i][j];
 						var OrderId = j;
-						var LoadingPlant = i;
+						var LoadingPlant = codLoadingPlants[i];
 						var Revenue = revenues[j];
 						var BeginTimeWindow = a[j];
 						var EndTimeWindow = b[j];
@@ -147,7 +147,7 @@ execute {
 		}
 	}
 	
-	for(var node in Nodes)
+	/*for(var node in Nodes)
 	{
 		writeln("------------------------------------------------------");
 		writeln("MixerTruck: ", node.MixerTruck);
@@ -167,7 +167,7 @@ execute {
 		writeln("CodDelivery: ", node.CodDelivery);
 		writeln("CodOrder: ", node.CodOrder);
 		writeln("------------------------------------------------------");	
-	}
+	}*/
 
 	var f = new IloOplOutputFile("C:\\RMCDP\\Result.json");
 	f.writeln("{");

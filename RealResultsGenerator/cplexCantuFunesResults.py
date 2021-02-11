@@ -11,7 +11,7 @@ from gmplot import *
 
 from classes import LoadingPlace, MixerTruck, Order, Delivery
 
-def cplexHaversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces):
+def cplexCantuFunesResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces):
     tripsJson = 0
     with open(basePath + '\\ResultGoogleMapsCplexCantuFunes.json') as data_file:    
         tripsJson = json.load(data_file)
@@ -20,6 +20,8 @@ def cplexHaversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, lo
     startTime = datetime(today.year, today.month, today.day, 0, 0, 0, 0) 
 
     df = pd.DataFrame(tripsJson['trips'])
+    # csvPath = basePath + 'cplexCantuFunesResults' + dataFolder + '.csv'
+    # df.to_csv(r'cplexCantuFunesResults.csv', index = False)
 
     df['LoadingBeginTime'] = df['LoadingBeginTime'].astype(int)
     df['ReturnTime'] = df['ReturnTime'].astype(int)
@@ -68,25 +70,25 @@ def cplexHaversineResults(basePath, dataFolder, googleMapsApiKey, deliveries, lo
         hover_data={ 'BEGIN': True, 'FINAL': True, 
             'LoadingBeginTime': False, 'ReturnTime': False, 
             'CodOrder': True, 'MixerTruck': True, 'CodDelivery': True, 'Arrival': True,
-            'DurationOfService': True, 'TravelTime': True, 'LoadingPlant': True,
-            'BeginTimeWindow': True, 'EndTimeWindow': True },
+            'DurationOfService': True, 'TravelCost': True, 'TravelTime': True, 
+            'LoadingPlant': True, 'BeginTimeWindow': True, 'EndTimeWindow': True },
         title='Revenue = ' + str(totalRevenue) + ' | Cost = 57930' + ' | MT Used = ' + str(len(mixerTrucks)))
     fig.update_yaxes(autorange='reversed')
     fig.update_layout(title_font_size=42, font_size=18, title_font_family='Arial')
     plotly.offline.plot(fig, filename=basePath + '\\CplexGoogleMapsCantuFunesGant_' + dataFolder + '.html')
 
-    gmap = gmplot.GoogleMapPlotter(loadingPlaces[0].LATITUDE_FILIAL, loadingPlaces[0].LONGITUDE_FILIAL, 11)
+    # gmap = gmplot.GoogleMapPlotter(loadingPlaces[0].LATITUDE_FILIAL, loadingPlaces[0].LONGITUDE_FILIAL, 11)
 
-    for index, row in df.iterrows():
-        loadingPlace = next((lp for lp in loadingPlaces if lp.index == row['LoadingPlant']), None)
-        gmap.marker(loadingPlace.LATITUDE_FILIAL, loadingPlace.LONGITUDE_FILIAL, color='yellow', title='', 
-            label='Loading Place')
-        delivery = next((d for d in deliveries if d.CODPROGVIAGEM == row['CodDelivery']), None)
-        gmap.marker(delivery.LATITUDE_OBRA, delivery.LONGITUDE_OBRA, color='cornflowerblue', 
-            label=str(delivery.CODPROGRAMACAO), title='')
-        gmap.plot([loadingPlace.LATITUDE_FILIAL, delivery.LATITUDE_OBRA], 
-            [loadingPlace.LONGITUDE_FILIAL, delivery.LONGITUDE_OBRA],  
-           'cornflowerblue', edge_width = 2.5)
+    # for index, row in df.iterrows():
+    #     loadingPlace = next((lp for lp in loadingPlaces if lp.index == row['LoadingPlant']), None)
+    #     gmap.marker(loadingPlace.LATITUDE_FILIAL, loadingPlace.LONGITUDE_FILIAL, color='yellow', title='', 
+    #         label='Loading Place')
+    #     delivery = next((d for d in deliveries if d.CODPROGVIAGEM == row['CodDelivery']), None)
+    #     gmap.marker(delivery.LATITUDE_OBRA, delivery.LONGITUDE_OBRA, color='cornflowerblue', 
+    #         label=str(delivery.CODPROGRAMACAO), title='')
+    #     gmap.plot([loadingPlace.LATITUDE_FILIAL, delivery.LATITUDE_OBRA], 
+    #         [loadingPlace.LONGITUDE_FILIAL, delivery.LONGITUDE_OBRA],  
+    #        'cornflowerblue', edge_width = 2.5)
 
-    gmap.apikey = googleMapsApiKey
-    gmap.draw(basePath + '\\CplexGoogleMapsCantuFunesMap_' + dataFolder + '.html')
+    # gmap.apikey = googleMapsApiKey
+    # gmap.draw(basePath + '\\CplexGoogleMapsCantuFunesMap_' + dataFolder + '.html')

@@ -68,26 +68,26 @@ def simpleHeuristicResults(fileName, basePath, dataFolder, googleMapsApiKey, del
         color=df['OrderId'], 
         hover_data={ 'BEGIN': True, 'FINAL': True, 
             'LoadingBeginTime': False, 'ReturnTime': False, 
-            'CodOrder': True, 'MixerTruck': True, 'CodDelivery': True, 'Lateness': True, 'Arrival': True,
-            'DurationOfService': True, 'TravelTime': True, 'LoadingPlant': True,
+            'CodOrder': True, 'MixerTruck': True, 'CodDelivery': True, 'Lateness': True, 
+            'Arrival': True, 'DurationOfService': True, 'TravelCost': True, 'TravelTime': True, 'LoadingPlant': True,
             'BeginTimeWindow': True, 'EndTimeWindow': True },
         title='Revenue = ' + str(totalRevenue) + ' | Cost = ' + str(tripsJson['objective']) + ' | MT Used = ' + str(len(mixerTrucksCount)))
     fig.update_yaxes(autorange='reversed')
     fig.update_layout(title_font_size=42, font_size=18, title_font_family='Arial')
     plotly.offline.plot(fig, filename=basePath + '\\SimpleHeuristic' + fileName + 'Gant_' + dataFolder + '.html')
 
-    gmap = gmplot.GoogleMapPlotter(loadingPlaces[0].LATITUDE_FILIAL, loadingPlaces[0].LONGITUDE_FILIAL, 11)
+    # gmap = gmplot.GoogleMapPlotter(loadingPlaces[0].LATITUDE_FILIAL, loadingPlaces[0].LONGITUDE_FILIAL, 11)
 
-    for index, row in df.iterrows():
-        loadingPlace = next((lp for lp in loadingPlaces if lp.CODCENTCUS == row['LoadingPlant']), None)
-        gmap.marker(loadingPlace.LATITUDE_FILIAL, loadingPlace.LONGITUDE_FILIAL, color='yellow', title=str(loadingPlace.CODCENTCUS), 
-            label=str(loadingPlace.CODCENTCUS))
-        delivery = next((d for d in deliveries if d.CODPROGVIAGEM == row['CodDelivery']), None)
-        gmap.marker(delivery.LATITUDE_OBRA, delivery.LONGITUDE_OBRA, color='cornflowerblue', 
-            label=str(delivery.CODPROGRAMACAO), title='')
-        gmap.plot([loadingPlace.LATITUDE_FILIAL, delivery.LATITUDE_OBRA], 
-            [loadingPlace.LONGITUDE_FILIAL, delivery.LONGITUDE_OBRA],  
-           'cornflowerblue', edge_width = 2.5)
+    # for index, row in df.iterrows():
+    #     loadingPlace = next((lp for lp in loadingPlaces if lp.CODCENTCUS == row['LoadingPlant']), None)
+    #     gmap.marker(loadingPlace.LATITUDE_FILIAL, loadingPlace.LONGITUDE_FILIAL, color='yellow', title=str(loadingPlace.CODCENTCUS), 
+    #         label=str(loadingPlace.CODCENTCUS))
+    #     delivery = next((d for d in deliveries if d.CODPROGVIAGEM == row['CodDelivery']), None)
+    #     gmap.marker(delivery.LATITUDE_OBRA, delivery.LONGITUDE_OBRA, color='cornflowerblue', 
+    #         label=str(delivery.CODPROGRAMACAO), title='')
+    #     gmap.plot([loadingPlace.LATITUDE_FILIAL, delivery.LATITUDE_OBRA], 
+    #         [loadingPlace.LONGITUDE_FILIAL, delivery.LONGITUDE_OBRA],  
+    #        'cornflowerblue', edge_width = 2.5)
 
-    gmap.apikey = googleMapsApiKey
-    gmap.draw(basePath + '\\SimpleHeuristic' + fileName + 'Map_' + dataFolder + '.html')
+    # gmap.apikey = googleMapsApiKey
+    # gmap.draw(basePath + '\\SimpleHeuristic' + fileName + 'Map_' + dataFolder + '.html')

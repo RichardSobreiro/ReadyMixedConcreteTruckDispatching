@@ -10,17 +10,19 @@ from googleMapsFirstModelData import googleMapsFirstModelData
 from googleMapsSecondModelData import googleMapsSecondModelData
 from googleMapsCombinations import googleMapsCombinations
 from haversineData import haversineData
+from bianchessiData import bianchessiData
 from classes import LoadingPlace, MixerTruck, Order, Delivery, DirectionResult
 
 def main(argv):
-    dataFolder = 'PEQUENA - AP-GOIANIA-13-06-2019'
+    dataFolder = 'PEQUENA - GDE-TIJUCAS-15-06-2019'
     basePath = 'C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\' + dataFolder
     DEFAULT_DIESEL_COST = 3.5
-    DEFAULT_RMC_COST = 150
+    FIXED_L_PER_KM = 27.5/100
     FIXED_MIXED_TRUCK_COST = 50
+
+    DEFAULT_RMC_COST = 150
     FIXED_MIXED_TRUCK_CAPACIT_M3 = 10
     FIXED_KM_PER_L = 2
-    FIXED_L_PER_KM = 27.5/100
 
     dfTrips = pd.read_csv(basePath + '\\Trips.csv', encoding = "ISO-8859-1")
     dfTrips = dfTrips.sort_values('CODPROGRAMACAO')
@@ -73,6 +75,10 @@ def main(argv):
                 LONGITUDE_OBRA=row['LONGITUDE_OBRA'], VLRVENDA=row['VLRVENDA'])
             order.TRIPS.append(delivery)
             deliveries.append(delivery)
+    
+    bianchessiData(mixerTrucks, loadingPlaces, deliveries, orders, 
+        NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
+        FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath)
 
     # googleMapsFirstModelData(mixerTrucks, loadingPlaces, deliveries, orders, 
     #     NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
@@ -86,9 +92,9 @@ def main(argv):
     #     NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
     #     FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath)
     
-    googleMapsCombinations(mixerTrucks, loadingPlaces, deliveries, orders, 
-        NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
-        FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath)
+    # googleMapsCombinations(mixerTrucks, loadingPlaces, deliveries, orders, 
+    #     NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
+    #     FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
