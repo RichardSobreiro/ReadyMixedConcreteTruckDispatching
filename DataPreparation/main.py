@@ -11,6 +11,7 @@ from googleMapsSecondModelData import googleMapsSecondModelData
 from googleMapsCombinations import googleMapsCombinations
 from haversineData import haversineData
 from bianchessiData import bianchessiData
+from bianchessiRandomData import bianchessiRandomData
 from classes import LoadingPlace, MixerTruck, Order, Delivery, DirectionResult
 
 def main(argv):
