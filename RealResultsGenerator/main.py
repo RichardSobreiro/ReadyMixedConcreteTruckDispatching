@@ -10,17 +10,27 @@ from gmplot import *
 from realResults import realResults
 from cplexCantuFunesResults import cplexCantuFunesResults
 from simpleHeuristicResults import simpleHeuristicResults
+from cplexBianchessiRandomResults import cplexBianchessiRandomResults
+from cplexBianchessiRealResults import cplexBianchessiRealResults
 
 def main(argv):
-    dataFolder = 'BH-10-01-2020'
-    basePath = 'C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\' + dataFolder
+    # basePath = 'C:\\RMCDP'
+    # googleMapsApiKey = ''
+    # cplexBianchessiRandomResults(basePath, dataFolder, googleMapsApiKey)
+
+    dataFolder = 'RJ-13-06-2019'
     DEFAULT_DIESEL_COST = 3.5
     FIXED_L_PER_KM = 27.5/100
     FIXED_MIXED_TRUCK_COST = 50
+    basePath = 'C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\' + dataFolder
 
-    googleMapsApiKey, deliveries, loadingPlaces, mixerTrucks = realResults(dataFolder, basePath, DEFAULT_DIESEL_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_COST)
+    #googleMapsApiKey, deliveries, loadingPlaces, mixerTrucks = realResults(dataFolder, basePath, DEFAULT_DIESEL_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_COST)
+    
+    cplexBianchessiRealResults(basePath, dataFolder, 'googleMapsApiKey')
 
-    cplexCantuFunesResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces)
+    #cplexCantuFunesResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces)
+
+    #cplexCantuFunesResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces)
 
     #simpleHeuristicResults('HaversineSimple', basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces)
 

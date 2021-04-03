@@ -22,19 +22,26 @@ def bianchessiRandomData(basePath, loadingPlaces, deliveries, numberOfTrucks):
     s = np.zeros((N))
     cfr = np.zeros((N))
 
+    codLoadingPlants = np.zeros((P))
+    codOrders = np.zeros((N))
+    codDeliveries = np.zeros((N))
+
     p = 0
     i = 0
     while p < P:
+        codLoadingPlants[p] = p
         while i < N:
             cc[p][i] = random.randint(200, 400)
             tt[p][i] = random.randint(15, 80)
+            codOrders[i] = i
+            codDeliveries[i] = i
             i += 1
         i = 0
         p += 1
     
     i = 0
     while i < N:
-        s[i] = random.randint(0, 480)
+        s[i] = random.randint(0, 720)
         cfr[i] = random.uniform(4, 8)
         i += 1
 
@@ -66,7 +73,27 @@ def bianchessiRandomData(basePath, loadingPlaces, deliveries, numberOfTrucks):
             while j < N:
                 k = 0
                 while k < N:
-                    c[p][i][j][k] = 10 * t[p][i][j][k]
+                    if i == j and j == k:
+                        c[p][i][j][k] = 10 * t[p][i][j][k]
+                    else:
+                        if(i == j and j != k):
+                            if(s[i] + tt[p][i] + (cfr[i] * 8)) > (s[k] - tt[p][k] - 10):
+                                c[p][i][j][k] = 1000 * t[p][i][j][k]
+                                #t[p][i][j][k] = c[p][i][j][k]
+                            else:
+                                c[p][i][j][k] = 10 * t[p][i][j][k]
+                        elif (i != j and j == k):
+                            if(s[i] + (cfr[i] * 8) + tt[p][i]) > (s[j] - tt[p][j] - 10):
+                                c[p][i][j][k] = 1000 * t[p][i][j][k]
+                                #t[p][i][j][k] = c[p][i][j][k]
+                            else:
+                                c[p][i][j][k] = 10 * t[p][i][j][k]
+                        else:
+                            if ((s[i] + (cfr[i] * 8) + tt[p][i]) > (s[j] - tt[p][j] - 10)) or ((s[j] + (cfr[j] * 8) + tt[p][j]) > (s[k] - tt[p][k] - 10)):
+                                c[p][i][j][k] = 1000 * t[p][i][j][k]
+                                #t[p][i][j][k] = c[p][i][j][k]
+                            else:
+                                c[p][i][j][k] = 10 * t[p][i][j][k]
                     k += 1
                 j += 1
             i += 1
@@ -77,6 +104,40 @@ def bianchessiRandomData(basePath, loadingPlaces, deliveries, numberOfTrucks):
     datfile.write('nc = ' + str(N) + ';\n')
     datfile.write('np = ' + str(P) + ';\n')        
     datfile.write('nv = ' + str(V) + ';\n')
+
+    datfile.write('tt = [\n')
+    i = 0
+    while i < P:
+        strTLine = ''
+        strTLine = '[' + str(int(tt[i][0]))
+        j = 1
+        while j < N:
+            strTLine += (', ' + str(int(tt[i][j])))
+            j += 1
+        if i == (P - 1):
+            strTLine += ']\n'
+        else:
+            strTLine += '],\n'
+        datfile.write(strTLine)
+        i += 1
+    datfile.write('];\n')
+
+    datfile.write('cc = [\n')
+    i = 0
+    while i < P:
+        strTLine = ''
+        strTLine = '[' + str(int(cc[i][0]))
+        j = 1
+        while j < N:
+            strTLine += (', ' + str(int(cc[i][j])))
+            j += 1
+        if i == (P - 1):
+            strTLine += ']\n'
+        else:
+            strTLine += '],\n'
+        datfile.write(strTLine)
+        i += 1
+    datfile.write('];\n')
 
     i = 1
     strp = 's = [' + str(int(s[0]))
@@ -90,6 +151,30 @@ def bianchessiRandomData(basePath, loadingPlaces, deliveries, numberOfTrucks):
     scfr = 'cfr = [' + str(int(cfr[0]))
     while i < (N):
         scfr += ', ' + str(int(cfr[i]))
+        i += 1
+    scfr += '];\n'
+    datfile.write(scfr)
+
+    i = 1
+    scfr = 'codLoadingPlants = [' + str(int(codLoadingPlants[0]))
+    while i < (P):
+        scfr += ', ' + str(int(codLoadingPlants[i]))
+        i += 1
+    scfr += '];\n'
+    datfile.write(scfr)
+
+    i = 1
+    scfr = 'codOrders = [' + str(int(codOrders[0]))
+    while i < (N):
+        scfr += ', ' + str(int(codOrders[i]))
+        i += 1
+    scfr += '];\n'
+    datfile.write(scfr)
+
+    i = 1
+    scfr = 'codDeliveries = [' + str(int(codDeliveries[0]))
+    while i < (N):
+        scfr += ', ' + str(int(codDeliveries[i]))
         i += 1
     scfr += '];\n'
     datfile.write(scfr)

@@ -44,6 +44,7 @@ class Delivery:
         self.LONGITUDE_OBRA = LONGITUDE_OBRA
         self.VLRVENDA = VLRVENDA
         self.LOADINGPLACESINFO = []
+        self.TotalTripCost = 0
 
 class DirectionResult:
     Distance = ''
