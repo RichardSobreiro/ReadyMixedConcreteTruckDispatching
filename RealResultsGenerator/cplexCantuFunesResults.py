@@ -13,7 +13,7 @@ from classes import LoadingPlace, MixerTruck, Order, Delivery
 
 def cplexCantuFunesResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces):
     tripsJson = 0
-    with open(basePath + '\\ResultGoogleMapsCplexCantuFunes.json') as data_file:    
+    with open(basePath + '\\CantuFunes.json') as data_file:    
         tripsJson = json.load(data_file)
     
     today = datetime.utcnow().date()

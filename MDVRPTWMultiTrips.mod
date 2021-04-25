@@ -24,14 +24,16 @@ float b[J] = ...; // End of the time window of customer j
 
 float c[I][J] = ...; // Cost of serving customer j from depot i
 float t[I][J] = ...; // Time for serving customer j from depot i
-float csd[J] = ...; // Customer j service duration
-float ld = 8;
+float vold[J] = ...; // Customer j service duration
+float cfr[J] = ...; 
+float ld = 10;
 float MTCOST = 50;
 //int u[K][I] = ...; // If truck k is assigned to depot i 
 
-dvar float x[I][J][K][L]; // If truck k travels from i to j in its lth trip
-dvar float u[K][I]; // If truck k is assigned to depot i
-dvar float mt[K]; // If truck k is used
+dvar boolean x[I][J][K][L]; // If truck k travels from i to j in its lth trip
+dvar boolean u[K][I]; // If truck k is assigned to depot i
+dvar boolean mt[K]; // If truck k is used
+
 dvar float s[K][L]; // Start time of trip l of truck k
 
 // 1
@@ -42,7 +44,7 @@ subject to{
 	// 3
 	// 4
 	forall(k in K, l in L: l < nL){
-		s[k][l] + sum(i in I, j in J)(x[i][j][k][l] * ((2 * t[i][j]) + ld + csd[j])) <= s[k][(l+1)];
+		s[k][l] + sum(i in I, j in J)(x[i][j][k][l] * ((2 * t[i][j]) + ld + (vold[j] * cfr[j]))) <= s[k][(l+1)];
 	}
 	// 5
 	forall(k in K, l in L){
@@ -50,7 +52,7 @@ subject to{
 	}
 	// 6
 	forall(k in K, l in L){
-		s[k][l] + sum(i in I, j in J)((t[i][j]+ ld) * x[i][j][k][l]) <= sum(i in I, j in J)(b[j] * x[i][j][k][l]); 	
+		s[k][l] + sum(i in I, j in J)((t[i][j] + ld) * x[i][j][k][l]) <= sum(i in I, j in J)(b[j] * x[i][j][k][l]); 	
 	}	
 	// 7
 	forall(i in I, j in J, k in K, l in L){
@@ -126,7 +128,7 @@ execute {
 						var MixerTruck = k;
 						var LoadingBeginTime = s[k][l];
 						var ServiceTime = s[k][l] + ld + t[i][j]; 
-						var ReturnTime = s[k][l] + ld + t[i][j] + csd[j] + t[i][j];
+						var ReturnTime = s[k][l] + ld + t[i][j] + (vold[j]*cfr[j]) + t[i][j];
 						var OrderId = j;
 						var LoadingPlant = codLoadingPlants[i];
 						var Revenue = revenues[j];
@@ -134,7 +136,7 @@ execute {
 						var EndTimeWindow = b[j];
 						var TravelTime = t[i][j];
 						var TravelCost = c[i][j];
-						var DurationOfService = csd[j];
+						var DurationOfService = (vold[j]*cfr[j]);
 						var IfDeliveryMustBeServed = 1;
 						var CodLoadingPlant = codLoadingPlants[i];
 						var CodMixerTruck = codMixerTrucks[k];
@@ -147,7 +149,7 @@ execute {
 		}
 	}
 	
-	/*for(var node in Nodes)
+	for(var node in Nodes)
 	{
 		writeln("------------------------------------------------------");
 		writeln("MixerTruck: ", node.MixerTruck);
@@ -167,9 +169,9 @@ execute {
 		writeln("CodDelivery: ", node.CodDelivery);
 		writeln("CodOrder: ", node.CodOrder);
 		writeln("------------------------------------------------------");	
-	}*/
+	}
 
-	var f = new IloOplOutputFile("C:\\RMCDP\\Result.json");
+	var f = new IloOplOutputFile("C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\PEQUENA - GDE-TIJUCAS-15-06-2019\\CantuFunes.json");
 	f.writeln("{");
 	f.writeln("	\"numberOfLoadingPlaces\": ", nI, ",");
 	f.writeln("	\"numberOfMixerTrucks\": ", nK, ",");

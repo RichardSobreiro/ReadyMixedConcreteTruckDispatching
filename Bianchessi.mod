@@ -11,30 +11,70 @@ float tt[P][N] = ...;
 float cc[P][N] = ...;
 float cfr[N] = ...;
 float s[N] = ...;
-float t[P][N][N][N] = ...;
-float c[P][N][N][N] = ...;
+float vold[N] = ...;
+float t[P][N][N][N];
+float c[P][N][N][N];
 
 float codLoadingPlants[P] = ...;
 float codOrders[N] = ...;
 float codDeliveries[N] = ...; 
 
 dvar boolean x[P][N][N][N];
+
 dvar float tus;
+dvar float cs[N];
 
-minimize sum(p in P,i in N,j in N,k in N)(c[p,i,j,k] * x[p,i,j,k]) + tus * 50;
+execute INITIALIZE {
+	for (var pp in P){
+		for(var ii in N){
+			for(var jj in N){
+				for(var kk in N){
+					if(ii == jj && jj == kk){
+						t[pp][ii][jj][kk] = (2 * tt[pp][ii]) + (cfr[ii] * vold[ii]) + 10;		
+					}
+					else{
+						if((ii == jj && jj != kk) || (ii != jj && jj == kk)){
+							t[pp][ii][jj][kk] = 2 * (tt[pp][ii] + tt[pp][kk]) + (cfr[ii] * vold[ii]) + (cfr[kk] * vold[kk]) + 20;		
+						}		
+						else{
+							t[pp][ii][jj][kk] = (2 * tt[pp][ii]) + (2 * tt[pp][jj]) + (2 * tt[pp][kk]) + (cfr[ii] * vold[ii]) + (cfr[jj] * vold[jj]) + (cfr[kk] * vold[kk]) + 30;			
+						}
+					}
+					
+					if(ii == jj && jj == kk){
+			            c[pp][ii][jj][kk] = cc[pp][ii];				
+					}
+			        else{
+			            if(ii == jj && jj != kk){
+			                c[pp][ii][jj][kk] = cc[pp][ii] + cc[pp][kk];
+			            }                
+			            else if (ii != jj && jj == kk){
+			                c[pp][ii][jj][kk] = cc[pp][ii] + cc[pp][jj];
+			            }                
+			            else{
+			                c[pp][ii][jj][kk] = cc[pp][ii] + cc[pp][jj] + cc[pp][kk];
+			            }                            
+			        }		
+				}
+			}
+ 		}
+	}
+}
 
-subject to { 
+minimize sum(p in P,i in N,j in N,k in N)(c[p,i,j,k] * x[p,i,j,k]) + (tus * 50);
+
+subject to {
 
 maximum_time:
 	forall(p in P,i in N,j in N,k in N){
-		t[p,i,j,k] * x[p,i,j,k] <= max_time;	
+		t[p][i][j][k] * x[p][i][j][k] <= max_time;	
 	}
 
 client_assignment: 
 	forall(i in N){
-		sum(p in P,j in N,k in N) x[p,i,j,k] 
-			+ sum(p in P,j in N,k in N: i != j) x[p,j,i,k]
-  				+ sum(p in P,j in N,k in N: i != j && k != i) x[p,k,j,i] == 1;	
+		sum(p in P,j in N,k in N) x[p][i][j][k] 
+			+ sum(p in P,j in N,k in N: i != j) x[p][j][i][k]
+  				+ sum(p in P,j in N,k in N: i != j && k != i) x[p][k][j][i] == 1;	
 	}
 
 vehicle_assignment: 
@@ -44,17 +84,56 @@ vehicle_assignment:
 
 time_windows:
 	forall(p in P, i in N, j in N, k in N){
-		if(i != j && i != k && j != k && 
-		((s[i] + ((cfr[i] * 8) + tt[p][i])) <= (s[j] - tt[p][j] - 10))  &&
-		((s[j] + ((cfr[j] * 8) + tt[p][j])) <= (s[k] - tt[p][k] - 10))){
+		if(i != j && i != k && j != k && (s[i] < s[j] < s[k]))
+		{
+			x[p][i][j][k] <= 1;
+			cs[i] + (((cfr[i] * 8) + tt[p][i])) * x[p][i][j][k] <= cs[j] - (tt[p][j] + 10) * x[p][i][j][k];
+			cs[j] + (((cfr[j] * 8) + tt[p][j])) * x[p][i][j][k] <= cs[k] - (tt[p][k] + 10) * x[p][i][j][k];
+			s[i] <= cs[i] <= s[i] + 15;
+			s[j] <= cs[j] <= s[j] + 15;
+			s[k] <= cs[k] <= s[k] + 15;
+		}	
+	 	else if (i != j && j == k && (s[i] < s[k]))
+	 	{
+			x[p][i][j][k] <= 1;
+			cs[i] + ((cfr[i] * 8) + tt[p][i]) * x[p][i][j][k] <= cs[j] - (tt[p][j] + 10) * x[p][i][j][k];
+			s[i] <= cs[i] <= s[i] + 15;
+			s[j] <= cs[j] <= s[j] + 15;
+			s[k] <= cs[k] <= s[k] + 15;
+		}		
+		else if(i == j && j != k && (s[j] < s[k]))
+		{
+			x[p][i][j][k] <= 1;
+			cs[j] + ((cfr[j] * 8) + tt[p][j]) * x[p][i][j][k] <= cs[k] - (tt[p][k] + 10) * x[p][i][j][k];
+			s[i] <= cs[i] <= s[i] + 15;
+			s[j] <= cs[j] <= s[j] + 15;
+			s[k] <= cs[k] <= s[k] + 15;
+		}
+		else if(i == j && j == k){
+			x[p][i][j][k] <= 1;
+			s[i] <= cs[i] <= s[i] + 15;
+			s[j] <= cs[j] <= s[j] + 15;
+			s[k] <= cs[k] <= s[k] + 15;	
+		}	
+		else{
+			x[p][i][j][k] == 0;	
+		}
+		
+	
+		/*if(i != j && i != k && j != k && 
+			((s[i] + ((cfr[i] * 8) + tt[p][i])) <= (s[j] + 15 - tt[p][j] - 10))  &&
+			((s[j] + ((cfr[j] * 8) + tt[p][j])) <= (s[k] + 15 - tt[p][k] - 10)))
+		{
 			x[p][i][j][k] <= 1; 	
 		}	
 	 	else if (i != j && j == k &&
-	 	((s[i] + (cfr[i] * 8) + tt[p][i]) <= (s[j] - tt[p][j] - 10))){
+	 		((s[i] + (cfr[i] * 8) + tt[p][i]) <= (s[j] + 15 - tt[p][j] - 10)))
+	 	{
 			x[p][i][j][k] <= 1;
 		}		
 		else if(i == j && j != k && 
-		((s[j] + (cfr[j] * 8) + tt[p][j]) <= (s[k] - tt[p][k] - 10))){
+			((s[j] + (cfr[j] * 8) + tt[p][j]) <= (s[k] + 15 - tt[p][k] - 10)))
+		{
 			x[p][i][j][k] <= 1;
 		}
 		else if(i == j && j == k){
@@ -62,31 +141,13 @@ time_windows:
 		}	
 		else{
 			x[p][i][j][k] == 0;	
-		}
-	
-		/*if(i != j && i != k && j != k){
-			(s[i] + ((cfr[i] * 8) + tt[p][i])) * x[p][i][j][k] <= (s[j] - tt[p][j] - 10) * x[p][i][j][k]; 
-			(s[j] + ((cfr[j] * 8) + tt[p][j])) * x[p][i][j][k] <= (s[k] - tt[p][k] - 10) * x[p][i][j][k];		
-		}	
-	 	else if (i != j && j == k){
-			(s[i] + (cfr[i] * 8) + tt[p][i]) * x[p][i][j][k] <= (s[j] - tt[p][j] - 10) * x[p][i][j][k];
-		}		
-		else if(i == j && j != k){
-			(s[j] + (cfr[j] * 8) + tt[p][j]) * x[p][i][j][k] <= (s[k] - tt[p][k] - 10) * x[p][i][j][k];
-		}
-		
-		if((s[i] < s[j] < s[k]) ){
-			x[p][i][j][k] <= 1; 	
-		}
-		else{
-			x[p][i][j][k] == 0; 	
-		}*/	
+		}*/
 	}
 
 nonzero:
 	tus >= 0;
 	forall(p in P,i in N,j in N,k in N){
-		x[p,i,j,k] >= 0;	
+		x[p][i][j][k] >= 0;	
 	}
 	
 }
@@ -136,8 +197,12 @@ execute {
 				{
 					if(x[p][i][j][k] == 1) 
 					{
-						Nodes.add(m, p, i, j, k, c[p][i][j][k], t[p][i][j][k], cfr[i], cfr[j], cfr[k], s[i], s[j], s[k], 
-							tt[p][i], tt[p][j], tt[p][k], cc[p][i], cc[p][j], cc[p][k], 
+						Nodes.add(m, p, i, j, k, 
+							c[p][i][j][k], t[p][i][j][k], 
+							cfr[i], cfr[j], cfr[k], 
+							s[i], s[j], s[k], 
+							tt[p][i], tt[p][j], tt[p][k], 
+							cc[p][i], cc[p][j], cc[p][k], 
 							codLoadingPlants[p], 
 							codOrders[i], codOrders[j], codOrders[k], 
 							codDeliveries[i], codDeliveries[j], codDeliveries[k]);
@@ -181,7 +246,7 @@ execute {
 		nodesLenght = nodesLenght + 1;
 	}
 
-	var f = new IloOplOutputFile("C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\BH-10-01-2020\\BianchessiResult.json");
+	var f = new IloOplOutputFile("C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\PEQUENA - GDE-TIJUCAS-15-06-2019\\BianchessiResult.json");
 	f.writeln("{");
 	f.writeln("	\"numberOfLoadingPlaces\": ", np, ",");
 	f.writeln("	\"numberOfMixerTrucks\": ", nv, ",");

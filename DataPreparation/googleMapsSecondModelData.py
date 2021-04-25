@@ -115,6 +115,9 @@ def googleMapsSecondModelData(mixerTrucks, loadingPlaces, deliveries, orders,
     t = np.zeros((len(loadingPlaces), len(deliveries)))
     csd = np.zeros((len(deliveries)))
 
+    cfr = np.zeros((len(deliveries)))
+    vold = np.zeros((len(deliveries)))
+
     u = np.zeros((len(mixerTrucks), len(loadingPlaces)))
 
     i = 0
@@ -138,6 +141,9 @@ def googleMapsSecondModelData(mixerTrucks, loadingPlaces, deliveries, orders,
                 codOrders[j] = order.CODPROGRAMACAO
                 codDeliveries[j] = dl.CODPROGVIAGEM
                 csd[j] = order.MEDIA_M3_DESCARGA * dl.VALVOLUMEPROG
+
+                cfr[j] = order.MEDIA_M3_DESCARGA
+                vold[j] = dl.VALVOLUMEPROG
                 j += 1
         i += 1
     
@@ -146,7 +152,8 @@ def googleMapsSecondModelData(mixerTrucks, loadingPlaces, deliveries, orders,
         loadingPlaceMixerTruck = next((lp for lp in loadingPlaces if lp.CODCENTCUS == mixerTrucks[k].CODCENTCUS), None)
         u[k][(loadingPlaceMixerTruck.index - 1)] = 1
 
-    datfile = open(basePath + '\\RMCTDP_Simple_Ref_GoogleMaps.dat', 'w+')
+    #region CANTU-FUNES DATA
+    datfile = open(basePath + '\\CantuFunes.dat', 'w+')
 
     datfile.write('nN = ' + str(nN) + ';\n')
     datfile.write('nA = ' + str(nA) + ';\n')
@@ -263,9 +270,109 @@ def googleMapsSecondModelData(mixerTrucks, loadingPlaces, deliveries, orders,
     datfile.write('];\n')
 
     i = 1
-    strcsd = 'csd = [' + str(int(csd[0]))
+    scfr = 'cfr = [' + str(int(cfr[0]))
     while i < (nJ):
-        strcsd += ', ' + str(int(csd[i]))
+        scfr += ', ' + str(int(cfr[i]))
         i += 1
-    strcsd += '];\n'
-    datfile.write(strcsd)
+    scfr += '];\n'
+    datfile.write(scfr)
+
+    i = 1
+    svold = 'vold = [' + str(int(vold[0]))
+    while i < (nJ):
+        svold += ', ' + str(int(vold[i]))
+        i += 1
+    svold += '];\n'
+    datfile.write(svold)
+
+    #endregion
+
+    #region INDEXED MODEL DATA
+    datfile = open(basePath + '\\BianchessiReal.dat', 'w+')
+
+    datfile.write('nc = ' + str(nJ) + ';\n')
+    datfile.write('np = ' + str(nI) + ';\n')        
+    datfile.write('nv = ' + str(nK) + ';\n')
+
+    datfile.write('tt = [\n')
+    i = 0
+    while i < nI:
+        strTLine = ''
+        strTLine = '[' + str(int(t[i][0]))
+        j = 1
+        while j < nJ:
+            strTLine += (', ' + str(int(t[i][j])))
+            j += 1
+        if i == (nI - 1):
+            strTLine += ']\n'
+        else:
+            strTLine += '],\n'
+        datfile.write(strTLine)
+        i += 1
+    datfile.write('];\n')
+
+    datfile.write('cc = [\n')
+    i = 0
+    while i < nI:
+        strTLine = ''
+        strTLine = '[' + str(int(c[i][0]))
+        j = 1
+        while j < nJ:
+            strTLine += (', ' + str(int(c[i][j])))
+            j += 1
+        if i == (nI - 1):
+            strTLine += ']\n'
+        else:
+            strTLine += '],\n'
+        datfile.write(strTLine)
+        i += 1
+    datfile.write('];\n')
+
+    i = 1
+    strp = 's = [' + str(int(a[0]))
+    while i < (nJ):
+        strp += ', ' + str(int(a[i]))
+        i += 1
+    strp += '];\n'
+    datfile.write(strp)
+
+    i = 1
+    scfr = 'cfr = [' + str(int(cfr[0]))
+    while i < (nJ):
+        scfr += ', ' + str(int(cfr[i]))
+        i += 1
+    scfr += '];\n'
+    datfile.write(scfr)
+
+    i = 1
+    svold = 'vold = [' + str(int(vold[0]))
+    while i < (nJ):
+        svold += ', ' + str(int(vold[i]))
+        i += 1
+    svold += '];\n'
+    datfile.write(svold)
+
+    i = 1
+    scfr = 'codLoadingPlants = [' + str(int(codLoadingPlants[0]))
+    while i < (nI):
+        scfr += ', ' + str(int(codLoadingPlants[i]))
+        i += 1
+    scfr += '];\n'
+    datfile.write(scfr)
+
+    i = 1
+    scfr = 'codOrders = [' + str(int(codOrders[0]))
+    while i < (nJ):
+        scfr += ', ' + str(int(codOrders[i]))
+        i += 1
+    scfr += '];\n'
+    datfile.write(scfr)
+
+    i = 1
+    scfr = 'codDeliveries = [' + str(int(codDeliveries[0]))
+    while i < (nJ):
+        scfr += ', ' + str(int(codDeliveries[i]))
+        i += 1
+    scfr += '];\n'
+    datfile.write(scfr)
+    #endregion

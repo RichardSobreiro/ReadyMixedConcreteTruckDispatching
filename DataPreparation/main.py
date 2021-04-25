@@ -22,7 +22,7 @@ def main(argv):
     # numberOfTrucks = 20
     # bianchessiRandomData(basePathRandom, loadingPlaces, deliveries, numberOfTrucks)
 
-    dataFolder = 'SP-13-06-2019'
+    dataFolder = 'SP-20-01-2020'
     basePath = 'C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\' + dataFolder
 
     DEFAULT_DIESEL_COST = 3.5
@@ -85,9 +85,9 @@ def main(argv):
             order.TRIPS.append(delivery)
             deliveries.append(delivery)
 
-    bianchessiRealData(basePath, mixerTrucks, loadingPlaces, deliveries, orders, 
-        NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
-        FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST)
+    # bianchessiRealData(basePath, mixerTrucks, loadingPlaces, deliveries, orders, 
+    #     NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
+    #     FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST)
     
     # bianchessiData(mixerTrucks, loadingPlaces, deliveries, orders, 
     #     NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
@@ -101,9 +101,9 @@ def main(argv):
     #     NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
     #     FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath)
 
-    # googleMapsSecondModelData(mixerTrucks, loadingPlaces, deliveries, orders, 
-    #     NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
-    #     FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath)
+    googleMapsSecondModelData(mixerTrucks, loadingPlaces, deliveries, orders, 
+        NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,
+        FIXED_MIXED_TRUCK_COST, DEFAULT_DIESEL_COST, basePath)
     
     # googleMapsCombinations(mixerTrucks, loadingPlaces, deliveries, orders, 
     #     NEW_ORDER_ID, DEFAULT_RMC_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_CAPACIT_M3,

@@ -137,6 +137,8 @@ def bianchessiRealData(basePath, mixerTrucks, loadingPlaces, deliveries, orders,
             loadingPlaceInfo = next((lpo for lpo in order.LOADINGPLACES_INFO if lp.CODCENTCUS == lpo.CODCENTCUS), None)
             for dl in order.TRIPS:
                 s[i] = dl.HORCHEGADAOBRA
+                # a[j] = dl.HORCHEGADAOBRA
+                # b[j] = dl.HORCHEGADAOBRA + 15
                 tt[p][i] = loadingPlaceInfo.TRAVELTIME
                 distance = loadingPlaceInfo.DISTANCE
                 cost = (dl.CUSVAR * dl.VALVOLUMEPROG) + (distance * FIXED_L_PER_KM * DEFAULT_DIESEL_COST * 2)
@@ -148,62 +150,62 @@ def bianchessiRealData(basePath, mixerTrucks, loadingPlaces, deliveries, orders,
                 i += 1
         p += 1
 
-    p = 0
-    while p < P:
-        i = 0
-        while i < N:
-            j = 0
-            while j < N:
-                k = 0
-                while k < N:
-                    if i == j and j == k:
-                        t[p][i][j][k] = int((2 * tt[p][i]) + (cfr[i] * vold[i]) + 10)
-                    else:
-                        if (i == j and j != k) or (i != j and j == k):
-                            t[p][i][j][k] = int(2 * (tt[p,i] + tt[p,k]) + (cfr[i] * vold[i]) + (cfr[k] * vold[k]) + 20)
-                        else:
-                            t[p][i][j][k] = int((2 * tt[p,i]) + (2 * tt[p,j]) + (2 * tt[p,k]) + (cfr[i] * vold[i]) + (cfr[j] * vold[j]) + (cfr[k] * vold[k]) + 30)
-                    k += 1
-                j += 1
-            i += 1
-        p += 1
+    # p = 0
+    # while p < P:
+    #     i = 0
+    #     while i < N:
+    #         j = 0
+    #         while j < N:
+    #             k = 0
+    #             while k < N:
+    #                 if i == j and j == k:
+    #                     t[p][i][j][k] = int((2 * tt[p][i]) + (cfr[i] * vold[i]) + 10)
+    #                 else:
+    #                     if (i == j and j != k) or (i != j and j == k):
+    #                         t[p][i][j][k] = int(2 * (tt[p,i] + tt[p,k]) + (cfr[i] * vold[i]) + (cfr[k] * vold[k]) + 20)
+    #                     else:
+    #                         t[p][i][j][k] = int((2 * tt[p,i]) + (2 * tt[p,j]) + (2 * tt[p,k]) + (cfr[i] * vold[i]) + (cfr[j] * vold[j]) + (cfr[k] * vold[k]) + 30)
+    #                 k += 1
+    #             j += 1
+    #         i += 1
+    #     p += 1
 
-    p = 0
-    while p < P:
-        i = 0
-        while i < N:
-            j = 0
-            while j < N:
-                k = 0
-                while k < N:
-                    if i == j and j == k:
-                        c[p][i][j][k] = cc[p][i]
-                    else:
-                        if(i == j and j != k):
-                            c[p][i][j][k] = cc[p][i] + cc[p][k]
-                            # if(s[i] + (cfr[i] * 8) + tt[p][i]) <= (s[k] - tt[p][k] - 10):
-                            #     c[p][i][j][k] = cc[p][i] + cc[p][k]
-                            # else:
-                            #     c[p][i][j][k] = 100000
-                            #     #t[p][i][j][k] = 100000
-                        elif (i != j and j == k):
-                            c[p][i][j][k] = cc[p][i] + cc[p][j]
-                            # if(s[i] + (cfr[i] * 8) + tt[p][i]) <= (s[j] - tt[p][j] - 10):
-                            #     c[p][i][j][k] = cc[p][i] + cc[p][j]
-                            # else:
-                            #     c[p][i][j][k] = 100000
-                            #     #t[p][i][j][k] = 100000
-                        else:
-                            c[p][i][j][k] = cc[p][i] + cc[p][j] + cc[p][k]
-                            # if ((s[i] + (cfr[i] * 8) + tt[p][i]) <= (s[j] - 10 - tt[p][j])) and ((s[j] + (cfr[j] * 8) + tt[p][j]) <= (s[k] - 10 - tt[p][k])):
-                            #     c[p][i][j][k] = cc[p][i] + cc[p][j] + cc[p][k]
-                            # else:
-                            #     c[p][i][j][k] = 100000
-                            #     #t[p][i][j][k] =  100000
-                    k += 1
-                j += 1
-            i += 1
-        p += 1
+    # p = 0
+    # while p < P:
+    #     i = 0
+    #     while i < N:
+    #         j = 0
+    #         while j < N:
+    #             k = 0
+    #             while k < N:
+    #                 if i == j and j == k:
+    #                     c[p][i][j][k] = cc[p][i]
+    #                 else:
+    #                     if(i == j and j != k):
+    #                         c[p][i][j][k] = cc[p][i] + cc[p][k]
+    #                         # if(s[i] + (cfr[i] * 8) + tt[p][i]) <= (s[k] - tt[p][k] - 10):
+    #                         #     c[p][i][j][k] = cc[p][i] + cc[p][k]
+    #                         # else:
+    #                         #     c[p][i][j][k] = 100000
+    #                         #     #t[p][i][j][k] = 100000
+    #                     elif (i != j and j == k):
+    #                         c[p][i][j][k] = cc[p][i] + cc[p][j]
+    #                         # if(s[i] + (cfr[i] * 8) + tt[p][i]) <= (s[j] - tt[p][j] - 10):
+    #                         #     c[p][i][j][k] = cc[p][i] + cc[p][j]
+    #                         # else:
+    #                         #     c[p][i][j][k] = 100000
+    #                         #     #t[p][i][j][k] = 100000
+    #                     else:
+    #                         c[p][i][j][k] = cc[p][i] + cc[p][j] + cc[p][k]
+    #                         # if ((s[i] + (cfr[i] * 8) + tt[p][i]) <= (s[j] - 10 - tt[p][j])) and ((s[j] + (cfr[j] * 8) + tt[p][j]) <= (s[k] - 10 - tt[p][k])):
+    #                         #     c[p][i][j][k] = cc[p][i] + cc[p][j] + cc[p][k]
+    #                         # else:
+    #                         #     c[p][i][j][k] = 100000
+    #                         #     #t[p][i][j][k] =  100000
+    #                 k += 1
+    #             j += 1
+    #         i += 1
+    #     p += 1
 
     datfile = open(basePath + '\\BianchessiReal.dat', 'w+')
 
@@ -262,6 +264,14 @@ def bianchessiRealData(basePath, mixerTrucks, loadingPlaces, deliveries, orders,
     datfile.write(scfr)
 
     i = 1
+    svold = 'vold = [' + str(int(vold[0]))
+    while i < (N):
+        svold += ', ' + str(int(vold[i]))
+        i += 1
+    svold += '];\n'
+    datfile.write(svold)
+
+    i = 1
     scfr = 'codLoadingPlants = [' + str(int(codLoadingPlants[0]))
     while i < (P):
         scfr += ', ' + str(int(codLoadingPlants[i]))
@@ -285,81 +295,81 @@ def bianchessiRealData(basePath, mixerTrucks, loadingPlaces, deliveries, orders,
     scfr += '];\n'
     datfile.write(scfr)
 
-    datfile.write('c = ')
-    p = 0
-    i = 0
-    j = 0
-    k = 0
-    strCLine = '[\n'
-    while p < P:
-        i = 0
-        strCLine += '[\n'
-        while i < N:
-            j = 0
-            strCLine += '[\n'
-            while j < N:
-                k = 0
-                strCLine += '['
-                while k < N:
-                    if k == 0:
-                        strCLine += (str(c[p][i][j][k]))
-                    else:
-                        strCLine += (', ' + str(c[p][i][j][k]))
-                    k += 1
-                if j == (N - 1):
-                    strCLine += ']\n'
-                else:
-                    strCLine += '],\n'
-                j += 1
-            if i == (N - 1):
-                strCLine += ']\n'
-            else:
-                strCLine += '],\n'
-            i += 1
-        if p == (P - 1):
-            strCLine += ']\n'
-        else:
-            strCLine += '],\n'
-            #datfile.write(strCLine)
-        p += 1
-    datfile.write(strCLine)
-    datfile.write('];\n')
+    # datfile.write('c = ')
+    # p = 0
+    # i = 0
+    # j = 0
+    # k = 0
+    # #strCLine = '[\n'
+    # while p < P:
+    #     i = 0
+    #     strCLine = '[\n[\n'
+    #     while i < N:
+    #         j = 0
+    #         strCLine += '[\n'
+    #         while j < N:
+    #             k = 0
+    #             strCLine += '['
+    #             while k < N:
+    #                 if k == 0:
+    #                     strCLine += (str(c[p][i][j][k]))
+    #                 else:
+    #                     strCLine += (', ' + str(c[p][i][j][k]))
+    #                 k += 1
+    #             if j == (N - 1):
+    #                 strCLine += ']\n'
+    #             else:
+    #                 strCLine += '],\n'
+    #             j += 1
+    #         if i == (N - 1):
+    #             strCLine += ']\n'
+    #         else:
+    #             strCLine += '],\n'
+    #         i += 1
+    #     if p == (P - 1):
+    #         strCLine += ']\n'
+    #     else:
+    #         strCLine += '],\n'
+    #     datfile.write(strCLine)
+    #     p += 1
+    # #datfile.write(strCLine)
+    # datfile.write('];\n')
 
-    datfile.write('t = ')
-    p = 0
-    i = 0
-    j = 0
-    k = 0
-    strCLine = '[\n'
-    while p < P:
-        i = 0
-        strCLine += '[\n'
-        while i < N:
-            j = 0
-            strCLine += '[\n'
-            while j < N:
-                k = 0
-                strCLine += '['
-                while k < N:
-                    if k == 0:
-                        strCLine += (str(t[p][i][j][k]))
-                    else:
-                        strCLine += (', ' + str(t[p][i][j][k]))
-                    k += 1
-                if j == (N - 1):
-                    strCLine += ']\n'
-                else:
-                    strCLine += '],\n'
-                j += 1
-            if i == (N - 1):
-                strCLine += ']\n'
-            else:
-                strCLine += '],\n'
-            i += 1
-        if p == (P - 1):
-            strCLine += ']\n'
-        else:
-            strCLine += '],\n'
-        p += 1
-    datfile.write(strCLine)
-    datfile.write('];\n')
+    # datfile.write('t = ')
+    # p = 0
+    # i = 0
+    # j = 0
+    # k = 0
+    # strCLine = '[\n'
+    # while p < P:
+    #     i = 0
+    #     strCLine += '[\n'
+    #     while i < N:
+    #         j = 0
+    #         strCLine += '[\n'
+    #         while j < N:
+    #             k = 0
+    #             strCLine += '['
+    #             while k < N:
+    #                 if k == 0:
+    #                     strCLine += (str(t[p][i][j][k]))
+    #                 else:
+    #                     strCLine += (', ' + str(t[p][i][j][k]))
+    #                 k += 1
+    #             if j == (N - 1):
+    #                 strCLine += ']\n'
+    #             else:
+    #                 strCLine += '],\n'
+    #             j += 1
+    #         if i == (N - 1):
+    #             strCLine += ']\n'
+    #         else:
+    #             strCLine += '],\n'
+    #         i += 1
+    #     if p == (P - 1):
+    #         strCLine += ']\n'
+    #     else:
+    #         strCLine += '],\n'
+    #     p += 1
+    # datfile.write(strCLine)
+    # datfile.write('];\n')

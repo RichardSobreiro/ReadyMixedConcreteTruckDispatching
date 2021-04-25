@@ -114,7 +114,7 @@ def realResults(dataFolder, basePath, DEFAULT_DIESEL_COST, FIXED_L_PER_KM, FIXED
         title='Real: Profit/Loss = ' + str(round(totalProfit, 0)) + ' and Total MT = ' + str(len(mixerTrucks)))
     fig.update_yaxes(autorange='reversed')
     fig.update_layout(title_font_size=42, font_size=18, title_font_family='Arial')
-    plotly.offline.plot(fig, filename=basePath + '\\RealGant_' + dataFolder + '.html')
+    # plotly.offline.plot(fig, filename=basePath + '\\RealGant_' + dataFolder + '.html')
 
     gmap = gmplot.GoogleMapPlotter(loadingPlaces[0].LATITUDE_FILIAL, loadingPlaces[0].LONGITUDE_FILIAL, 11)
 
@@ -128,6 +128,6 @@ def realResults(dataFolder, basePath, DEFAULT_DIESEL_COST, FIXED_L_PER_KM, FIXED
            'cornflowerblue', edge_width = 2.5)
 
     gmap.apikey = googleMapsApiKey
-    gmap.draw(basePath + '\\RealMap_' + dataFolder + '.html')
+    # gmap.draw(basePath + '\\RealMap_' + dataFolder + '.html')
 
     return googleMapsApiKey, deliveries, loadingPlaces, mixerTrucks
