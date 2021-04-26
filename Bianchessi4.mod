@@ -103,7 +103,7 @@ time_windows:
 			s[k] <= cs[k] <= s[k] + 15;
 			s[l] <= cs[l] <= s[l] + 15;
 		}
-		else if(i == j && k != i && l != i && k != l && (s[j] < s[k] < s[l]))// 1 1 x x
+		else if(i == j && k != i && l != i && k != l && (s[j] < s[k]) && (s[k] < s[l]))// 1 1 x x
 		{
 			x[p][i][j][k][l] <= 1;
 			cs[j] + ((cfr[j] * 8) + tt[p][j]) * x[p][i][j][k][l] <= cs[k] - (tt[p][k] + 10) * x[p][i][j][k][l];
