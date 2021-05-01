@@ -21,7 +21,7 @@ namespace Heuristics
 
             string instanceName = "PEQUENA - GDE-TIJUCAS-15-06-2019\\";
             string folderPath = "C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\" + instanceName;
-            DynamicAlgorithm1.Execute(folderPath);
+            DynamicAlgorithms.IndexedRoutes.FourCustomers.Execute(folderPath);
             //double DEFAULT_DIESEL_COST = 3.5;
             //double DEFAULT_RMC_COST = 150;
             //double FIXED_MIXED_TRUCK_COST = 50;
