@@ -19,8 +19,19 @@ namespace Heuristics
             Stopwatch watch = new Stopwatch();
             watch.Start();
 
-            string instanceName = "PEQUENA - GDE-TIJUCAS-15-06-2019\\";
-            string folderPath = "C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\" + instanceName;
+            string instanceName = "";
+            string folderPath = "";
+
+            if (args.Length < 2)
+            {
+                instanceName = "PEQUENA - GDE-TIJUCAS-15-06-2019\\";
+                folderPath = "C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\" + instanceName;
+            }
+            else
+            {
+                instanceName = args[0];
+                folderPath = args[1] + instanceName;
+            }
             DynamicAlgorithms.IndexedRoutes.FourCustomers.Execute(folderPath);
             //double DEFAULT_DIESEL_COST = 3.5;
             //double DEFAULT_RMC_COST = 150;

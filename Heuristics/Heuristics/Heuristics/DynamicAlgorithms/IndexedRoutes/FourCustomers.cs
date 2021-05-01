@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -57,6 +58,9 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
 
         public static void Execute(string folderPath)
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             #region GetInputParameters
             int nc = 0;
             int np = 0;
@@ -383,7 +387,8 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
                                     }
 
                                 }
-                                else if (i == j && k != i && l != i && k != l && (s[j] < s[k]) && (s[k] < s[l]) &&
+                                else if (i == j && k != i && l != i && k != l && 
+                                    (s[j] < s[k]) && (s[k] < s[l]) &&
                                     (s[j] + ((cfr[j] * vold[j]) + tt[p, j]) <= (s[k] + 15) - (tt[p, k] + 10)) &&
                                     (s[k] + ((cfr[k] * vold[k]) + tt[p, k]) <= (s[l] + 15) - (tt[p, l] + 10))
                                     )// 1 1 x x        
@@ -955,9 +960,9 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
                 OrderByDescending(fr => fr.NumberOfCustomersInRoute).
                 ThenBy(fr => fr.RouteTotalCost);
             var routes = new List<Route>();
-            foreach(var route in orderedFeasibleRoutes)
+            foreach (var route in orderedFeasibleRoutes)
             {
-                if((!route.Compare1.HasValue || (route.Compare1.HasValue && !customersVisited.Any(c => c == route.Compare1))) &&
+                if ((!route.Compare1.HasValue || (route.Compare1.HasValue && !customersVisited.Any(c => c == route.Compare1))) &&
                    (!route.Compare2.HasValue || (route.Compare2.HasValue && !customersVisited.Any(c => c == route.Compare2))) &&
                    (!route.Compare3.HasValue || (route.Compare3.HasValue && !customersVisited.Any(c => c == route.Compare3))) &&
                    (!route.Compare4.HasValue || (route.Compare4.HasValue && !customersVisited.Any(c => c == route.Compare4)))
@@ -965,7 +970,7 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
                 {
                     routes.Add(route);
                     minCost += route.RouteTotalCost;
-                    if(route.Compare1.HasValue)
+                    if (route.Compare1.HasValue)
                         customersVisited.Add(route.Delivery1);
                     if (route.Compare2.HasValue)
                         customersVisited.Add(route.Delivery2);
@@ -976,13 +981,18 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
                 }
             }
             int trucksRouteCount = 1;
-            foreach(var route in routes)
+            foreach (var route in routes)
             {
                 route.MixerTruck = trucksRouteCount;
                 Console.WriteLine($"Truck Route [{trucksRouteCount}] : " + route.RouteString);
+                //Console.WriteLine($"Truck Route [{trucksRouteCount}] COST: " + route.RouteTotalCost);
                 trucksRouteCount++;
             }
             Console.WriteLine($"\n\nTotal Cost = {(routes.Count * 50) + minCost}");
+
+            stopwatch.Stop();
+            TimeSpan stopwatchElapsed = stopwatch.Elapsed;
+            Console.WriteLine($"\n\nTotal Elapsed Time: {Convert.ToInt32(stopwatchElapsed.TotalSeconds)}");
         }
     }
 }
