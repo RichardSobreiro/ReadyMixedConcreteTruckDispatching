@@ -267,20 +267,6 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
             }
             #endregion
 
-            Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, double>>>>> c =
-                new Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, double>>>>>();
-            Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, double>>>>> t =
-                new Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, double>>>>>();
-
-            Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, double>>>>> fourCustomers =
-                new Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, double>>>>>();
-            Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, double>>>> threeCustomers =
-                new Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, double>>>>();
-            Dictionary<int, Dictionary<int, Dictionary<int, double>>> twoCustomers =
-                new Dictionary<int, Dictionary<int, Dictionary<int, double>>>();
-            Dictionary<int, Dictionary<int, double>> oneCustomers =
-                new Dictionary<int, Dictionary<int, double>>();
-
             List<Route> feasibleRoutes = new List<Route>();
 
             for (int p = 0; p < np; p++)
@@ -293,24 +279,6 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
                         {
                             for (int l = 0; l < nc; l++)
                             {
-                                if (!c.ContainsKey(p))
-                                    c[p] = new Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, double>>>>();
-                                if (!c[p].ContainsKey(i))
-                                    c[p][i] = new Dictionary<int, Dictionary<int, Dictionary<int, double>>>();
-                                if (!c[p][i].ContainsKey(j))
-                                    c[p][i][j] = new Dictionary<int, Dictionary<int, double>>();
-                                if (!c[p][i][j].ContainsKey(k))
-                                    c[p][i][j][k] = new Dictionary<int, double>();
-
-                                if (!t.ContainsKey(p))
-                                    t[p] = new Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, double>>>>();
-                                if (!t[p].ContainsKey(i))
-                                    t[p][i] = new Dictionary<int, Dictionary<int, Dictionary<int, double>>>();
-                                if (!t[p][i].ContainsKey(j))
-                                    t[p][i][j] = new Dictionary<int, Dictionary<int, double>>();
-                                if (!t[p][i][j].ContainsKey(k))
-                                    t[p][i][j][k] = new Dictionary<int, double>();
-
                                 if (i != j && i != k && i != l && j != k && j != l && k != l &&
                                     (s[i] < s[j]) && (s[j] < s[k]) && (s[k] < s[l]) &&
                                     (s[i] + ((cfr[i] * vold[i]) + tt[p, i]) <= (s[j] + 15) - (tt[p, j] + 10)) &&
@@ -319,24 +287,13 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
                                     )
                                 {
                                     double routeCost = cc[p, i] + cc[p, j] + cc[p, k] + cc[p, l];
-                                    c[p][i][j][k].Add(l, routeCost);
                                     double routeTotalTime = (2 * tt[p, i]) + (2 * tt[p, j]) + (2 * tt[p, k]) + (2 * tt[p, l]) +
                                         (cfr[i] * vold[i]) + (cfr[j] * vold[j]) + (cfr[k] * vold[k]) + (cfr[l] * vold[l]) + 40;
-                                    t[p][i][j][k].Add(l, routeTotalTime);
 
-                                    if (!fourCustomers.ContainsKey(p))
-                                        fourCustomers[p] = new Dictionary<int, Dictionary<int, Dictionary<int, Dictionary<int, double>>>>();
-                                    if (!fourCustomers[p].ContainsKey(i))
-                                        fourCustomers[p][i] = new Dictionary<int, Dictionary<int, Dictionary<int, double>>>();
-                                    if (!fourCustomers[p][i].ContainsKey(j))
-                                        fourCustomers[p][i][j] = new Dictionary<int, Dictionary<int, double>>();
-                                    if (!fourCustomers[p][i][j].ContainsKey(k))
-                                        fourCustomers[p][i][j][k] = new Dictionary<int, double>();
-                                    if (!fourCustomers[p][i][j].ContainsKey(k))
-                                        fourCustomers[p][i][j][k] = new Dictionary<int, double>();
-                                    if (!fourCustomers[p][i][j][k].ContainsKey(l))
+                                    if (!feasibleRoutes.Any(fr => fr.Compare1 == i &&
+                                        fr.Compare2 == j && fr.Compare3 == k && fr.Compare4 == l &&
+                                        fr.NumberOfCustomersInRoute == 4))
                                     { 
-                                        fourCustomers[p][i][j][k].Add(l, c[p][i][j][k][l]);
                                         var newFeasibleRoute = new Route()
                                         {
                                             NumberOfCustomersInRoute = 4,
@@ -394,20 +351,15 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
                                     )// 1 1 x x        
                                 {
                                     double routeCost = cc[p, i] + cc[p, k] + cc[p, l];
-                                    c[p][i][j][k].Add(l, cc[p, i] + cc[p, k] + cc[p, l]);
                                     double routeTotalTime = (2 * tt[p, i]) + (2 * tt[p, k]) + (2 * tt[p, l]) +
                                         (cfr[i] * vold[i]) + (cfr[k] * vold[k]) + (cfr[l] * vold[l]) + 30;
-                                    t[p][i][j][k].Add(l, routeTotalTime);
-
-                                    if (!threeCustomers.ContainsKey(p))
-                                        threeCustomers[p] = new Dictionary<int, Dictionary<int, Dictionary<int, double>>>();
-                                    if (!threeCustomers[p].ContainsKey(j))
-                                        threeCustomers[p][j] = new Dictionary<int, Dictionary<int, double>>();
-                                    if (!threeCustomers[p][j].ContainsKey(k))
-                                        threeCustomers[p][j][k] = new Dictionary<int, double>();
-                                    if (!threeCustomers[p][j][k].ContainsKey(l))
+                                    if (!feasibleRoutes.Any(fr => !fr.Compare1.HasValue &&
+                                        fr.Compare2 == j && 
+                                        fr.Compare3 == k && 
+                                        fr.Compare4 == l &&
+                                        fr.NumberOfCustomersInRoute == 3))
                                     {
-                                        threeCustomers[p][j][k].Add(l, c[p][i][j][k][l]);
+                                        //threeCustomers[p][j][k].Add(l, c[p][i][j][k][l]);
                                         var newFeasibleRoute = new Route()
                                         {
                                             NumberOfCustomersInRoute = 3,
@@ -463,20 +415,14 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
                                     ) // x 1 1 x
                                 {
                                     double routeCost = cc[p, i] + cc[p, k] + cc[p, l];
-                                    c[p][i][j][k].Add(l, routeCost);
                                     double routeTotalTime = (2 * tt[p, i]) + (2 * tt[p, k]) + (2 * tt[p, l]) +
                                         (cfr[i] * vold[i]) + (cfr[k] * vold[k]) + (cfr[l] * vold[l]) + 30;
-                                    t[p][i][j][k].Add(l, routeTotalTime);
-
-                                    if (!threeCustomers.ContainsKey(p))
-                                        threeCustomers[p] = new Dictionary<int, Dictionary<int, Dictionary<int, double>>>();
-                                    if (!threeCustomers[p].ContainsKey(i))
-                                        threeCustomers[p][i] = new Dictionary<int, Dictionary<int, double>>();
-                                    if (!threeCustomers[p][i].ContainsKey(j))
-                                        threeCustomers[p][i][j] = new Dictionary<int, double>();
-                                    if (!threeCustomers[p][i][j].ContainsKey(l))
+                                    if (!feasibleRoutes.Any(fr => fr.Compare1 == i &&
+                                        fr.Compare2 == j &&
+                                        !fr.Compare3.HasValue &&
+                                        fr.Compare4 == l &&
+                                        fr.NumberOfCustomersInRoute == 3))
                                     {
-                                        threeCustomers[p][i][j].Add(l, c[p][i][j][k][l]);
                                         var newFeasibleRoute = new Route()
                                         {
                                             NumberOfCustomersInRoute = 3,
@@ -532,20 +478,15 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
                                     ) // x x 1 1
                                 {
                                     double routeCost = cc[p, i] + cc[p, j] + cc[p, k];
-                                    c[p][i][j][k].Add(l, routeCost);
                                     double routeTotalTime = (2 * tt[p, i]) + (2 * tt[p, j]) + (2 * tt[p, k]) +
                                         (cfr[i] * vold[i]) + (cfr[j] * vold[j]) + (cfr[k] * vold[k]) + 30;
-                                    t[p][i][j][k].Add(l, routeTotalTime);
-
-                                    if (!threeCustomers.ContainsKey(p))
-                                        threeCustomers[p] = new Dictionary<int, Dictionary<int, Dictionary<int, double>>>();
-                                    if (!threeCustomers[p].ContainsKey(i))
-                                        threeCustomers[p][i] = new Dictionary<int, Dictionary<int, double>>();
-                                    if (!threeCustomers[p][i].ContainsKey(j))
-                                        threeCustomers[p][i][j] = new Dictionary<int, double>();
-                                    if (!threeCustomers[p][i][j].ContainsKey(l))
+                                    if (!feasibleRoutes.Any(fr => fr.Compare1 == i &&
+                                        fr.Compare2 == j &&
+                                        !fr.Compare3.HasValue &&
+                                        fr.Compare4 == l &&
+                                        fr.NumberOfCustomersInRoute == 3))
                                     {
-                                        threeCustomers[p][i][j].Add(l, c[p][i][j][k][l]);
+                                        //threeCustomers[p][i][j].Add(l, c[p][i][j][k][l]);
                                         var newFeasibleRoute = new Route()
                                         {
                                             NumberOfCustomersInRoute = 3,
@@ -600,17 +541,15 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
                                     ) // 1 1 1 x
                                 {
                                     double routeCost = cc[p, k] + cc[p, l];
-                                    c[p][i][j][k].Add(l, routeCost);
                                     double routeTotalTime = (2 * tt[p, k]) + (2 * tt[p, l]) +
                                         (cfr[k] * vold[k]) + (cfr[l] * vold[l]) + 20;
-                                    t[p][i][j][k].Add(l, routeTotalTime);
-                                    if (!twoCustomers.ContainsKey(p))
-                                        twoCustomers[p] = new Dictionary<int, Dictionary<int, double>>();
-                                    if (!twoCustomers[p].ContainsKey(k))
-                                        twoCustomers[p][k] = new Dictionary<int, double>();
-                                    if (!twoCustomers[p][k].ContainsKey(l))
+                                    if (!feasibleRoutes.Any(fr => !fr.Compare1.HasValue &&
+                                        !fr.Compare2.HasValue &&
+                                        fr.Compare3 == k &&
+                                        fr.Compare4 == l &&
+                                        fr.NumberOfCustomersInRoute == 2))
                                     {
-                                        twoCustomers[p][k].Add(l, c[p][i][j][k][l]);
+                                        //twoCustomers[p][k].Add(l, c[p][i][j][k][l]);
                                         var newFeasibleRoute = new Route()
                                         {
                                             NumberOfCustomersInRoute = 2,
@@ -665,17 +604,15 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
                                     ) // x 1 1 1
                                 {
                                     double routeCost = cc[p, i] + cc[p, j];
-                                    c[p][i][j][k].Add(l, routeCost);
                                     double routeTotalTime = (2 * tt[p, i]) + (2 * tt[p, j]) +
                                         (cfr[i] * vold[i]) + (cfr[j] * vold[j]) + 20;
-                                    t[p][i][j][k].Add(l, routeTotalTime);
-                                    if (!twoCustomers.ContainsKey(p))
-                                        twoCustomers[p] = new Dictionary<int, Dictionary<int, double>>();
-                                    if (!twoCustomers[p].ContainsKey(i))
-                                        twoCustomers[p][i] = new Dictionary<int, double>();
-                                    if (!twoCustomers[p][i].ContainsKey(j))
+                                    if (!feasibleRoutes.Any(fr => fr.Compare1 == i &&
+                                        fr.Compare2 == j &&
+                                        fr.Compare3.HasValue &&
+                                        fr.Compare4.HasValue &&
+                                        fr.NumberOfCustomersInRoute == 2))
                                     {
-                                        twoCustomers[p][i].Add(j, c[p][i][j][k][l]);
+                                        //twoCustomers[p][i].Add(j, c[p][i][j][k][l]);
                                         var newFeasibleRoute = new Route()
                                         {
                                             NumberOfCustomersInRoute = 2,
@@ -730,17 +667,15 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
                                     ) // 1 1 0 0
                                 {
                                     double routeCost = cc[p, j] + cc[p, k];
-                                    c[p][i][j][k].Add(l, routeCost);
                                     double routeTotalTime = (2 * tt[p, j]) + (2 * tt[p, k]) +
                                         (cfr[j] * vold[j]) + (cfr[k] * vold[k]) + 20;
-                                    t[p][i][j][k].Add(l, routeTotalTime);
-                                    if (!twoCustomers.ContainsKey(p))
-                                        twoCustomers[p] = new Dictionary<int, Dictionary<int, double>>();
-                                    if (!twoCustomers[p].ContainsKey(j))
-                                        twoCustomers[p][j] = new Dictionary<int, double>();
-                                    if (!twoCustomers[p][j].ContainsKey(k))
+                                    if (!feasibleRoutes.Any(fr => !fr.Compare1.HasValue &&
+                                        fr.Compare2 == j &&
+                                        fr.Compare3 == k &&
+                                        !fr.Compare4.HasValue &&
+                                        fr.NumberOfCustomersInRoute == 2))
                                     {
-                                        twoCustomers[p][j].Add(k, c[p][i][j][k][l]);
+                                        //twoCustomers[p][j].Add(k, c[p][i][j][k][l]);
                                         var newFeasibleRoute = new Route()
                                         {
                                             NumberOfCustomersInRoute = 2,
@@ -793,15 +728,14 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
                                 else if (i == j && j == k && k == l) // 1 1 1 1 
                                 {
                                     double routeCost = cc[p, i];
-                                    if (!c[p][i][j][k].ContainsKey(l))
-                                        c[p][i][j][k].Add(l, cc[p, i]);
                                     double routeTotalTime = (2 * tt[p, i]) + (cfr[i] * vold[i]) + 10;
-                                    t[p][i][j][k].Add(l, routeTotalTime);
-                                    if (!oneCustomers.ContainsKey(p))
-                                        oneCustomers[p] = new Dictionary<int, double>();
-                                    if(!oneCustomers[p].ContainsKey(i))
+                                    if (!feasibleRoutes.Any(fr => fr.Compare1 == i &&
+                                        fr.Compare2.HasValue &&
+                                        fr.Compare3.HasValue &&
+                                        fr.Compare4.HasValue &&
+                                        fr.NumberOfCustomersInRoute == 1))
                                     {
-                                        oneCustomers[p].Add(i, c[p][i][j][k][l]);
+                                        //oneCustomers[p].Add(i, c[p][i][j][k][l]);
                                         var newFeasibleRoute = new Route()
                                         {
                                             NumberOfCustomersInRoute = 1,
@@ -856,104 +790,6 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
                     }
                 }
             }
-
-            double totalCost = 0;
-            List<int> customersAlreadyVisited = new List<int>();
-            List<string> customersSequencePerRoute = new List<string>();
-            fourCustomers.OrderBy(x => x.Value.Values.OrderBy(y => y.Values.OrderBy(z => z.Values.OrderBy(w => w.Values.OrderBy(s => s)))));
-            foreach (var dictPair1 in fourCustomers)
-            {
-                foreach (var dictPair2 in dictPair1.Value)
-                {
-                    foreach (var dictPair3 in dictPair2.Value)
-                    {
-                        foreach (var dictPair4 in dictPair3.Value)
-                        {
-                            foreach (var dictPair5 in dictPair4.Value)
-                            {
-                                if (!customersAlreadyVisited.Any(x => x == dictPair2.Key) &&
-                                    !customersAlreadyVisited.Any(x => x == dictPair3.Key) &&
-                                    !customersAlreadyVisited.Any(x => x == dictPair4.Key) &&
-                                    !customersAlreadyVisited.Any(x => x == dictPair5.Key))
-                                {
-                                    customersAlreadyVisited.Add(dictPair2.Key);
-                                    customersAlreadyVisited.Add(dictPair3.Key);
-                                    customersAlreadyVisited.Add(dictPair4.Key);
-                                    customersAlreadyVisited.Add(dictPair5.Key);
-                                    customersSequencePerRoute.Add($"{dictPair1.Key} -> {dictPair2.Key} -> {dictPair3.Key} -> {dictPair4.Key} -> {dictPair5.Key}");
-                                    totalCost += dictPair5.Value;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            threeCustomers.OrderBy(x => x.Value.Values.OrderBy(y => y.Values.OrderBy(z => z.Values.OrderBy(w => w))));
-            foreach (var dictPair1 in threeCustomers)
-            {
-                foreach (var dictPair2 in dictPair1.Value)
-                {
-                    foreach (var dictPair3 in dictPair2.Value)
-                    {
-                        foreach (var dictPair4 in dictPair3.Value)
-                        {
-                            if (!customersAlreadyVisited.Any(x => x == dictPair2.Key) &&
-                                !customersAlreadyVisited.Any(x => x == dictPair3.Key) &&
-                                !customersAlreadyVisited.Any(x => x == dictPair4.Key))
-                            {
-                                customersAlreadyVisited.Add(dictPair2.Key);
-                                customersAlreadyVisited.Add(dictPair3.Key);
-                                customersAlreadyVisited.Add(dictPair4.Key);
-                                customersSequencePerRoute.Add($"{dictPair1.Key} -> {dictPair2.Key} -> {dictPair3.Key} -> {dictPair4.Key}");
-                                totalCost += dictPair4.Value;
-                            }
-                        }
-                    }
-                }
-            }
-
-            twoCustomers.OrderBy(x => x.Value.Values.OrderBy(y => y.Values.OrderBy(z => z)));
-            foreach (var dictPair1 in twoCustomers)
-            {
-                foreach (var dictPair2 in dictPair1.Value)
-                {
-                    foreach (var dictPair3 in dictPair2.Value)
-                    {
-                        if (!customersAlreadyVisited.Any(x => x == dictPair2.Key) &&
-                            !customersAlreadyVisited.Any(x => x == dictPair3.Key))
-                        {
-                            customersAlreadyVisited.Add(dictPair2.Key);
-                            customersAlreadyVisited.Add(dictPair3.Key);
-                            customersSequencePerRoute.Add($"{dictPair1.Key} -> {dictPair2.Key} -> {dictPair3.Key}");
-                            totalCost += dictPair3.Value;
-                        }
-                    }
-                }
-            }
-
-            oneCustomers.OrderBy(x => x.Value.Values.OrderBy(y => y));
-            foreach (var dictPair1 in oneCustomers)
-            {
-                foreach (var dictPair2 in dictPair1.Value)
-                {
-                    if (!customersAlreadyVisited.Any(x => x == dictPair2.Key))
-                    {
-                        customersAlreadyVisited.Add(dictPair2.Key);
-                        customersSequencePerRoute.Add($"{dictPair1.Key} -> {dictPair2.Key}");
-                        totalCost += dictPair2.Value;
-                    }
-                }
-            }
-
-            int routeCount = 1;
-            foreach (var route in customersSequencePerRoute)
-            {
-                Console.WriteLine($"Truck Route [{routeCount}] : " + route);
-                routeCount++;
-            }
-            Console.WriteLine($"\n\nTotal Cost = {(customersSequencePerRoute.Count * 50) + totalCost}\n\n");
-
             double minCost = 0;
             List<int> customersVisited = new List<int>();
             var orderedFeasibleRoutes = feasibleRoutes.
@@ -985,7 +821,6 @@ namespace Heuristics.DynamicAlgorithms.IndexedRoutes
             {
                 route.MixerTruck = trucksRouteCount;
                 Console.WriteLine($"Truck Route [{trucksRouteCount}] : " + route.RouteString);
-                //Console.WriteLine($"Truck Route [{trucksRouteCount}] COST: " + route.RouteTotalCost);
                 trucksRouteCount++;
             }
             Console.WriteLine($"\n\nTotal Cost = {(routes.Count * 50) + minCost}");
