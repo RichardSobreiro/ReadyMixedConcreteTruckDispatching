@@ -13,21 +13,27 @@ from simpleHeuristicResults import simpleHeuristicResults
 from cplexBianchessiRandomResults import cplexBianchessiRandomResults
 from cplexBianchessiRealResults import cplexBianchessiRealResults
 from cplexBianchessi4RealResults import cplexBianchessi4RealResults
+from stochasticDeliveryAcceptanceResults import stochasticDeliveryAcceptanceResults
 
 def main(argv):
     # basePath = 'C:\\RMCDP'
     # googleMapsApiKey = ''
     # cplexBianchessiRandomResults(basePath, dataFolder, googleMapsApiKey)
 
-    dataFolder = 'PEQUENA - GDE-TIJUCAS-15-06-2019'
+    dataFolder = 'RJ-13-06-2019'
     DEFAULT_DIESEL_COST = 3.5
     FIXED_L_PER_KM = 27.5/100
     FIXED_MIXED_TRUCK_COST = 50
     basePath = 'C:\\Users\\Richard Sobreiro\\Google Drive\\Mestrado\\Dados\\' + dataFolder
 
     googleMapsApiKey, deliveries, loadingPlaces, mixerTrucks = realResults(dataFolder, basePath, DEFAULT_DIESEL_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_COST)
-    
-    cplexBianchessi4RealResults(basePath, dataFolder, 'googleMapsApiKey')
+
+    filaName = '\\DELIVERY_BY_DELIVERY_ACCEPTANCE'
+    stochasticDeliveryAcceptanceResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces, filaName)
+    filaName = '\\STOCHASTIC_ROUTE_ACCEPTANCE_0.5_1000'
+    stochasticDeliveryAcceptanceResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces, filaName)
+
+    #cplexBianchessi4RealResults(basePath, dataFolder, 'googleMapsApiKey')
     #cplexBianchessiRealResults(basePath, dataFolder, 'googleMapsApiKey')
 
     #cplexCantuFunesResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces)

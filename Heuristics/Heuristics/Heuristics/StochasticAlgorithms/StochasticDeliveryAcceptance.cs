@@ -1,8 +1,10 @@
-﻿using System;
+﻿using Heuristics.Entities;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Heuristics.ConstructiveHeuristics.StochasticAlgorithms
@@ -266,7 +268,8 @@ namespace Heuristics.ConstructiveHeuristics.StochasticAlgorithms
                 var cheapestLoadingPlace = delivery.LoadingPlaceInfos.FirstOrDefault();
                 int maximalDeliveryLoadingTime = (delivery.ServiceTime + 15) -
                     cheapestLoadingPlace.TripDuration - 10;
-                Route route = routes.FirstOrDefault(r => r.NextAvailableTime <= maximalDeliveryLoadingTime);
+                Route route = routes.FirstOrDefault(r => r.NextAvailableTime <= maximalDeliveryLoadingTime && 
+                    r.LoadingPlaceId == cheapestLoadingPlace.LoadingPlaceId);
                 if (route == null)
                 {
                     route = new Route();
@@ -342,13 +345,22 @@ namespace Heuristics.ConstructiveHeuristics.StochasticAlgorithms
             TimeSpan stopwatchElapsed = stopwatch.Elapsed;
             Console.WriteLine($"\n\nTotal Elapsed Time: {Convert.ToInt32(stopwatchElapsed.TotalSeconds)}\n\n");
 
+            WriteResults(routes, folderPath, $"\\DELIVERY_BY_DELIVERY_ACCEPTANCE", totalCost);
+
             Stopwatch stopwatchStochasticRoute = new Stopwatch();
             stopwatchStochasticRoute.Start();
 
             List<int> diferentLoadingPlaces = routes.Select(r => r.LoadingPlaceId).Distinct().ToList();
             List<Route> stochasticRoutes = new List<Route>();
             List<Task<List<Route>>> tasks = new List<Task<List<Route>>>();
-            foreach(int loadingPlaceId in diferentLoadingPlaces)
+
+            //foreach (int loadingPlaceId in diferentLoadingPlaces)
+            //{
+            //    var routesFromLp = routes.Where(r => r.LoadingPlaceId == loadingPlaceId).ToList();
+            //    stochasticRoutes.AddRange(StochasticRouteCreation(routesFromLp, loadingPlaceId, MAX_K));
+            //}
+
+            foreach (int loadingPlaceId in diferentLoadingPlaces)
             {
                 var routesFromLp = routes.Where(r => r.LoadingPlaceId == loadingPlaceId).ToList();
                 tasks.Add(Task.Factory.StartNew(() => StochasticRouteCreation(routesFromLp, loadingPlaceId, MAX_K)));
@@ -376,6 +388,8 @@ namespace Heuristics.ConstructiveHeuristics.StochasticAlgorithms
             stopwatchStochasticRoute.Stop();
             TimeSpan stopwatchElapsedStochasticRoute = stopwatchStochasticRoute.Elapsed;
             Console.WriteLine($"\n\nTotal Elapsed Time: {Convert.ToInt32(stopwatchElapsedStochasticRoute.TotalSeconds)}\n\n");
+
+            WriteResults(stochasticRoutes, folderPath, $"\\STOCHASTIC_ROUTE_ACCEPTANCE_{PROBABILITY}_{MAX_K}", totalCostStochasticRoute);
         }
         private List<Route> StochasticRouteCreation(List<Route> routes, int loadingPlaceId, int numberOfIterations)
         {
@@ -416,7 +430,8 @@ namespace Heuristics.ConstructiveHeuristics.StochasticAlgorithms
                 var cheapestLoadingPlace = delivery.LoadingPlaceInfos.FirstOrDefault();
                 int maximalDeliveryLoadingTime = (delivery.ServiceTime + 15) -
                     cheapestLoadingPlace.TripDuration - 10;
-                Route route = routes.FirstOrDefault(r => r.NextAvailableTime <= maximalDeliveryLoadingTime);
+                Route route = routes.FirstOrDefault(r => r.NextAvailableTime <= maximalDeliveryLoadingTime &&
+                        r.LoadingPlaceId == cheapestLoadingPlace.LoadingPlaceId);
                 if (route == null)
                 {
                     route = CreateNewRoute(cheapestLoadingPlace);
@@ -429,15 +444,16 @@ namespace Heuristics.ConstructiveHeuristics.StochasticAlgorithms
                     while (routeAcceptanceProbability <= PROBABILITY)
                     {
                         routeAcceptanceProbability = random.NextDouble();
-                        if(routeAcceptanceProbability > 0.5)
+                        if (routeAcceptanceProbability > PROBABILITY)
                         {
                             break;
                         }
                         else
                         {
-                            if(route != null)
+                            if (route != null)
                                 copyRoutes.RemoveAll(r => r.NextAvailableTime == route.NextAvailableTime);
-                            route = copyRoutes.FirstOrDefault(r => r.NextAvailableTime <= maximalDeliveryLoadingTime);
+                            route = copyRoutes.FirstOrDefault(r => r.NextAvailableTime <= maximalDeliveryLoadingTime &&
+                                        r.LoadingPlaceId == cheapestLoadingPlace.LoadingPlaceId);
                         }
                     }
                     if (route == null)
@@ -446,8 +462,12 @@ namespace Heuristics.ConstructiveHeuristics.StochasticAlgorithms
                         route.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
                         routes.Add(route);
                     }
-                    route = routes.FirstOrDefault(r => r.NextAvailableTime == route.NextAvailableTime);
-                    route.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
+                    else
+                    {
+                        route = routes.FirstOrDefault(r => r.NextAvailableTime == route.NextAvailableTime &&
+                                    r.LoadingPlaceId == cheapestLoadingPlace.LoadingPlaceId);
+                        route.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
+                    }
                     routeAcceptanceProbability = 0;
                 }
                 delivery.BaseLoadingPlaceId = cheapestLoadingPlace.LoadingPlaceId;
@@ -477,7 +497,6 @@ namespace Heuristics.ConstructiveHeuristics.StochasticAlgorithms
                 else if (route.NextAvailableTime.HasValue &&
                     (route.NextAvailableTime <= maximalDeliveryLoadingTime))
                 {
-
                     delivery.LoadingBeginTime = (delivery.ServiceTime) -
                         cheapestLoadingPlace.TripDuration - 10 +
                         (route.NextAvailableTime - (maximalDeliveryLoadingTime - 15));
@@ -506,6 +525,47 @@ namespace Heuristics.ConstructiveHeuristics.StochasticAlgorithms
             route.RouteString = $"Base [{route.LoadingPlaceId}]";
             return route;
         }
+        static void WriteResults(List<Route> routes, string folderPath, string fileName, double totalCost)
+        {
+            List<Delivery> deliveryResults = new List<Delivery>();
+            foreach (Route route in routes)
+            {
+                foreach(Delivery delivery in route.Deliveries)
+                delivery.MixerTruck = route.MixerTruck.Value;
+                deliveryResults.AddRange(route.Deliveries);
+            }
+            Result result = new Result();
+            result.numberOfDeliveries = deliveryResults.Count;
+            result.numberOfLoadingPlaces = 0;
+            result.numberOfMixerTrucks = routes.Count();
+            result.trips = new List<Result.ResultTrip>();
+            foreach (Delivery delivery in deliveryResults)
+            {
+                result.trips.Add(new Result.ResultTrip()
+                {
+                    OrderId = delivery.CodOrder,
+                    Delivery = delivery.CodDelivery,
+                    MixerTruck = delivery.MixerTruck,
+                    LoadingBeginTime = delivery.LoadingBeginTime.Value,
+                    ServiceTime = delivery.BeginServiceTime.Value,
+                    ReturnTime = delivery.ArrivaTimeAtPlant.Value,
+                    LoadingPlant = delivery.LoadingPlaceInfos[0].CodLoadingPlace,
+                    Revenue = 0,
+                    BeginTimeWindow = delivery.ServiceTime,
+                    EndTimeWindow = delivery.ServiceTime + 15,
+                    TravelTime = delivery.LoadingPlaceInfos[0].TripDuration,
+                    TravelCost = (int)delivery.LoadingPlaceInfos[0].Cost,
+                    DurationOfService = (int)(delivery.EndServiceTime.Value - delivery.BeginServiceTime.Value),
+                    IfDeliveryMustBeServed = 1,
+                    CodDelivery = delivery.CodDelivery,
+                    CodOrder = delivery.CodOrder,
+                    Lateness = delivery.BeginServiceTime.Value - delivery.ServiceTime
+                });
+            }
+            result.objective = (int)totalCost;
+            string jsonString = JsonSerializer.Serialize(result);
+            File.WriteAllText(folderPath + fileName, jsonString);
+        }
     }
     [Serializable]
     public class Route
@@ -532,6 +592,7 @@ namespace Heuristics.ConstructiveHeuristics.StochasticAlgorithms
     public class Delivery
     {
         public int DeliveryId { get; set; }
+        public int MixerTruck { get; set; }
         public int CodOrder { get; set; }
         public int CodDelivery { get; set; }
         public int ServiceTime { get; set; }
