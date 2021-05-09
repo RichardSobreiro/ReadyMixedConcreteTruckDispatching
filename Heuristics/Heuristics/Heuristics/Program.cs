@@ -21,8 +21,13 @@ namespace Heuristics
             
             string instanceName = args[0];
             string folderPath = args[1] + instanceName;
-            DynamicAlgorithms.IndexedRoutes.FourCustomers.Execute(folderPath);
-            Heuristics.ConstructiveHeuristics.DeliveryByDeliveryAllocation.Execute(folderPath);
+            double probability = double.Parse(args[2]);
+            int maxK = int.Parse(args[3]);
+            //DynamicAlgorithms.IndexedRoutes.FourCustomers.Execute(folderPath);
+            //Heuristics.ConstructiveHeuristics.DeliveryByDeliveryAllocation.Execute(folderPath);
+            var stochasticDeliveryAcceptance = 
+                new ConstructiveHeuristics.StochasticAlgorithms.StochasticDeliveryAcceptance(probability, maxK);
+            stochasticDeliveryAcceptance.Execute(folderPath);
             //double DEFAULT_DIESEL_COST = 3.5;
             //double DEFAULT_RMC_COST = 150;
             //double FIXED_MIXED_TRUCK_COST = 50;

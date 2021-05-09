@@ -3,12 +3,20 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
-namespace Heuristics.ConstructiveHeuristics
+namespace Heuristics.ConstructiveHeuristics.StochasticAlgorithms
 {
-    public class DeliveryByDeliveryAllocation
+    public class StochasticDeliveryAcceptance
     {
-        public static void Execute(string folderPath)
+        private readonly double PROBABILITY;
+        private readonly int MAX_K;
+        public StochasticDeliveryAcceptance(double probability, int maxK)
+        {
+            PROBABILITY = probability;
+            MAX_K = maxK;
+        }
+        public void Execute(string folderPath)
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -318,220 +326,185 @@ namespace Heuristics.ConstructiveHeuristics
                 route.Deliveries.Add(Heuristics.Extensions.ObjectExtensions.DeepClone<Delivery>(delivery));
             }
 
-            double minCost = 0;
+            double totalCost = 0;
             int trucksRouteCount = 1;
             foreach (var route in routes)
             {
-                minCost += route.TotalCost;
+                totalCost += route.TotalCost;
                 route.MixerTruck = trucksRouteCount;
                 Console.WriteLine($"Truck Route [{trucksRouteCount}] : " + route.RouteString);
                 trucksRouteCount++;
             }
-            Console.WriteLine($"\n\nTotal Cost = {(routes.Count * 50) + minCost}");
+            totalCost = (routes.Count * 50) + totalCost;
+            Console.WriteLine($"\n\nTotal Cost = {totalCost}");
 
             stopwatch.Stop();
             TimeSpan stopwatchElapsed = stopwatch.Elapsed;
             Console.WriteLine($"\n\nTotal Elapsed Time: {Convert.ToInt32(stopwatchElapsed.TotalSeconds)}\n\n");
 
+            Stopwatch stopwatchStochasticRoute = new Stopwatch();
+            stopwatchStochasticRoute.Start();
+
             List<int> diferentLoadingPlaces = routes.Select(r => r.LoadingPlaceId).Distinct().ToList();
+            List<Route> stochasticRoutes = new List<Route>();
+            List<Task<List<Route>>> tasks = new List<Task<List<Route>>>();
             foreach(int loadingPlaceId in diferentLoadingPlaces)
             {
                 var routesFromLp = routes.Where(r => r.LoadingPlaceId == loadingPlaceId).ToList();
-                Vns(routes);
+                tasks.Add(Task.Factory.StartNew(() => StochasticRouteCreation(routesFromLp, loadingPlaceId, MAX_K)));
             }
-        }
 
-        public static void Vns(List<Route> routes)
-        {
-            List<Route> refRoutes = Heuristics.Extensions.ObjectExtensions.DeepClone<List<Route>>(routes);
-            int k = 0;
-            int maxK = 1000;
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-            int numberOfTrucksUsed = routes.Count();
-            double totalRouteCost = routes.Sum(r => r.TotalCost) + (50 * numberOfTrucksUsed);
-            double currentRouteCost = totalRouteCost;
-            List<Delivery> deliveriesToBeReallocated = new List<Delivery>();
-            while (currentRouteCost >= totalRouteCost || deliveriesToBeReallocated.Count() > 0)
+            var results = Task.WhenAll(tasks);
+            for (int ctr = 0; ctr <= results.Result.Length - 1; ctr++)
             {
-                int firstRouteIndex = GetRandomRoute(routes, numberOfTrucksUsed);
-                Route firstRoute = routes[firstRouteIndex];
-                int tripIndexOfFirstRoute = GetRandomTripOfRoute(routes, firstRouteIndex);
-                Delivery tripToBeReallocatedInSecondRoute = firstRoute.Deliveries[tripIndexOfFirstRoute];
+                var result = results.Result[ctr];
+                stochasticRoutes.AddRange(result);
+            }
 
-                int secondRouteIndex = GetRandomRouteDifferentFromAnotherRoute(numberOfTrucksUsed, firstRouteIndex);
-                Route secondRoute = routes[secondRouteIndex];
-                int tripIndexOfSecondRoute = GetRandomTripOfRoute(routes, secondRouteIndex);
-                Delivery tripToBeRemovedFromSecondRoute = secondRoute.Deliveries[tripIndexOfSecondRoute];
+            double totalCostStochasticRoute = 0;
+            int trucksRouteCountStochasticRoute = 1;
+            foreach (var route in stochasticRoutes)
+            {
+                totalCostStochasticRoute += route.TotalCost;
+                route.MixerTruck = trucksRouteCountStochasticRoute;
+                Console.WriteLine($"Truck Route [{trucksRouteCountStochasticRoute}] : " + route.RouteString);
+                trucksRouteCountStochasticRoute++;
+            }
+            totalCostStochasticRoute = (stochasticRoutes.Count * 50) + totalCostStochasticRoute;
+            Console.WriteLine($"\n\nTotal Cost = {totalCostStochasticRoute}");
 
-                Route copySecondRoute = Heuristics.Extensions.ObjectExtensions.DeepClone<Route>(secondRoute);
-                copySecondRoute.Deliveries.Add(tripToBeReallocatedInSecondRoute);
-                Route newSecondRoute = new Route();
-                newSecondRoute.Deliveries = new List<Delivery>();
-
-                copySecondRoute.Deliveries.OrderBy(d => d.ServiceTime);
-                foreach (Delivery delivery in copySecondRoute.Deliveries)
+            stopwatchStochasticRoute.Stop();
+            TimeSpan stopwatchElapsedStochasticRoute = stopwatchStochasticRoute.Elapsed;
+            Console.WriteLine($"\n\nTotal Elapsed Time: {Convert.ToInt32(stopwatchElapsedStochasticRoute.TotalSeconds)}\n\n");
+        }
+        private List<Route> StochasticRouteCreation(List<Route> routes, int loadingPlaceId, int numberOfIterations)
+        {
+            List<Delivery> deliveries = new List<Delivery>();
+            int numberOfTrucksUsed = routes.Count();
+            foreach(Route route in routes)
+            {
+                deliveries.AddRange(route.Deliveries);
+            }
+            foreach(Delivery delivery in deliveries)
+            {
+                delivery.LoadingPlaceInfos.RemoveAll(lp => lp.LoadingPlaceId != loadingPlaceId);
+            }
+            int newNumberOfTrucksUsed = 0;
+            int k = 0;
+            while(k <= numberOfIterations)
+            {
+                List<Route> newRoutes = StochasticRouteAcceptance(deliveries);
+                newNumberOfTrucksUsed = newRoutes.Count();
+                if(newNumberOfTrucksUsed < numberOfTrucksUsed)
                 {
-                    if(delivery.DeliveryId != tripToBeRemovedFromSecondRoute.DeliveryId)
-                    {
-                        delivery.LoadingBeginTime = (delivery.ServiceTime) -
-                        delivery.LoadingPlaceInfos[0].TripDuration - 10;
-                        delivery.BeginServiceTime = delivery.ServiceTime;
-                        delivery.EndServiceTime = (int)(delivery.BeginServiceTime +
-                            (delivery.Volume * delivery.CustomerFlowRate));
-                        delivery.ArrivaTimeAtPlant = delivery.EndServiceTime +
-                            delivery.LoadingPlaceInfos[0].TripDuration;
-                        delivery.WaitingTimeBeforeLoading = null;
-                        if (newSecondRoute.Deliveries.Count() == 0)
-                        {
-                            delivery.Delay = 0;
-                            newSecondRoute.NumberOfCustomersInRoute++;
-                            newSecondRoute.RouteString = $"Base [{delivery.LoadingPlaceInfos[0].LoadingPlaceId}] -> Custommer [{delivery.DeliveryId}]";
-                            newSecondRoute.NextAvailableTime = delivery.ArrivaTimeAtPlant;
-                            newSecondRoute.MixerTruck = secondRoute.MixerTruck;
-                            newSecondRoute.LoadingPlaceId = delivery.LoadingPlaceInfos[0].LoadingPlaceId;
-                            newSecondRoute.CodLoadingPlace = delivery.LoadingPlaceInfos[0].CodLoadingPlace;
-                            newSecondRoute.TotalCost = delivery.LoadingPlaceInfos[0].Cost;
-                            newSecondRoute.Deliveries.Add(delivery);
-                        }
-                        else
-                        {
-                            if (newSecondRoute.NextAvailableTime <= delivery.LoadingBeginTime)
-                            {
-                                delivery.Delay = 0;
-                                delivery.WaitingTimeBeforeLoading = delivery.LoadingBeginTime - newSecondRoute.NextAvailableTime;
-                                newSecondRoute.NumberOfCustomersInRoute++;
-                                newSecondRoute.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
-                                newSecondRoute.NextAvailableTime = delivery.ArrivaTimeAtPlant;
-                                newSecondRoute.TotalCost = delivery.LoadingPlaceInfos[0].Cost;
-                                newSecondRoute.Deliveries.Add(delivery);
-                            }
-                            else if (newSecondRoute.NextAvailableTime <= (delivery.LoadingBeginTime + 15))
-                            {
-                                delivery.LoadingBeginTime = newSecondRoute.NextAvailableTime;
-                                delivery.BeginServiceTime = delivery.LoadingBeginTime + 10 +
-                                    delivery.LoadingPlaceInfos[0].TripDuration;
-                                delivery.EndServiceTime = (int)(delivery.BeginServiceTime +
-                                    (delivery.Volume * delivery.CustomerFlowRate));
-                                delivery.ArrivaTimeAtPlant = delivery.EndServiceTime +
-                                    delivery.LoadingPlaceInfos[0].TripDuration;
-                                delivery.WaitingTimeBeforeLoading = delivery.LoadingBeginTime - newSecondRoute.NextAvailableTime;
-                                delivery.Delay = delivery.BeginServiceTime.Value - delivery.ServiceTime;
-                                newSecondRoute.NumberOfCustomersInRoute++;
-                                newSecondRoute.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
-                                newSecondRoute.NextAvailableTime = delivery.ArrivaTimeAtPlant;
-                                newSecondRoute.TotalCost += delivery.LoadingPlaceInfos[0].Cost;
-                                newSecondRoute.Deliveries.Add(delivery);
-                            }
-                        }
-                    }
+                    routes = newRoutes;
+                    numberOfTrucksUsed = newNumberOfTrucksUsed;
                 }
-
-                if (newSecondRoute.TotalWaitingTime < secondRoute.TotalWaitingTime)
+                k++;
+            }
+            return routes;
+        }
+        private List<Route> StochasticRouteAcceptance(List<Delivery> deliveries)
+        {
+            Random random = new Random();
+            double routeAcceptanceProbability = 0;
+            deliveries = deliveries.OrderBy(d => d.ServiceTime).ToList();
+            List<Route> routes = new List<Route>();
+            foreach (Delivery delivery in deliveries)
+            {
+                delivery.LoadingPlaceInfos = delivery.LoadingPlaceInfos.OrderBy(lp => lp.Cost).ToList();
+                var cheapestLoadingPlace = delivery.LoadingPlaceInfos.FirstOrDefault();
+                int maximalDeliveryLoadingTime = (delivery.ServiceTime + 15) -
+                    cheapestLoadingPlace.TripDuration - 10;
+                Route route = routes.FirstOrDefault(r => r.NextAvailableTime <= maximalDeliveryLoadingTime);
+                if (route == null)
                 {
-                    foreach (Delivery delivery in newSecondRoute.Deliveries)
-                        copySecondRoute.Deliveries.RemoveAll(d => d.DeliveryId == delivery.DeliveryId);
-                    routes.Remove(secondRoute);
-                    routes.Add(newSecondRoute);
-                    firstRoute.Deliveries.Remove(tripToBeReallocatedInSecondRoute);
-                    if (firstRoute.Deliveries.Count() == 0)
-                        routes.Remove(firstRoute);
-                    numberOfTrucksUsed = routes.Count();
-                    currentRouteCost = routes.Sum(r => r.TotalCost) + (50 * numberOfTrucksUsed);
-                    deliveriesToBeReallocated.AddRange(copySecondRoute.Deliveries);
+                    route = CreateNewRoute(cheapestLoadingPlace);
+                    route.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
+                    routes.Add(route);
                 }
                 else
                 {
-                    if(k > maxK)
+                    List<Route> copyRoutes = Heuristics.Extensions.ObjectExtensions.DeepClone<List<Route>>(routes);
+                    while (routeAcceptanceProbability <= PROBABILITY)
                     {
-                        routes = Heuristics.Extensions.ObjectExtensions.DeepClone<List<Route>>(refRoutes);
-                        deliveriesToBeReallocated = new List<Delivery>();
-                        k = 0;
-                        currentRouteCost = totalRouteCost;
-                        numberOfTrucksUsed = routes.Count();
+                        routeAcceptanceProbability = random.NextDouble();
+                        if(routeAcceptanceProbability > 0.5)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            if(route != null)
+                                copyRoutes.RemoveAll(r => r.NextAvailableTime == route.NextAvailableTime);
+                            route = copyRoutes.FirstOrDefault(r => r.NextAvailableTime <= maximalDeliveryLoadingTime);
+                        }
                     }
-                }
-                deliveriesToBeReallocated = ReallocateRemovedTrips(routes, deliveriesToBeReallocated);
-                k++;
-            }
-            double minCost = 0;
-            int trucksRouteCount = 1;
-            foreach (var route in routes)
-            {
-                minCost += route.TotalCost;
-                route.MixerTruck = trucksRouteCount;
-                Console.WriteLine($"Truck Route [{trucksRouteCount}] : " + route.RouteString);
-                trucksRouteCount++;
-            }
-            Console.WriteLine($"\n\nTotal Cost = {(routes.Count * 50) + minCost}");
-
-            stopwatch.Stop();
-            TimeSpan stopwatchElapsed = stopwatch.Elapsed;
-            Console.WriteLine($"\n\nTotal Elapsed Time: {Convert.ToInt32(stopwatchElapsed.TotalSeconds)}\n\n");
-        }
-        private static List<Delivery> ReallocateRemovedTrips(List<Route> routes, List<Delivery> deliveriesToBeReallocated)
-        {
-            List<Delivery> copyDeliveriesToBeReallocated = Heuristics.Extensions.ObjectExtensions.DeepClone<List<Delivery>>(deliveriesToBeReallocated);
-            foreach (Delivery delivery in deliveriesToBeReallocated)
-            {
-                int delay = 0;
-                Route route = routes.FirstOrDefault(r => r.NextAvailableTime <= 
-                    (delivery.ServiceTime - delivery.LoadingPlaceInfos[0].TripDuration - 10));
-                if(route == null)
-                {
-                    route = routes.FirstOrDefault(r => r.NextAvailableTime <= 
-                        (delivery.ServiceTime + 15 - delivery.LoadingPlaceInfos[0].TripDuration - 10));
-                    if(route != null)
+                    if (route == null)
                     {
-                        delay = route.NextAvailableTime.Value - 
-                            (delivery.ServiceTime - delivery.LoadingPlaceInfos[0].TripDuration - 10);
+                        route = CreateNewRoute(cheapestLoadingPlace);
+                        route.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
+                        routes.Add(route);
                     }
+                    route = routes.FirstOrDefault(r => r.NextAvailableTime == route.NextAvailableTime);
+                    route.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
+                    routeAcceptanceProbability = 0;
                 }
-                if(route != null)
+                delivery.BaseLoadingPlaceId = cheapestLoadingPlace.LoadingPlaceId;
+                delivery.CodLoadingPlace = cheapestLoadingPlace.CodLoadingPlace;
+                if (!route.NextAvailableTime.HasValue)
                 {
-                    delivery.LoadingBeginTime = delivery.ServiceTime + delay -
-                        delivery.LoadingPlaceInfos[0].TripDuration - 10;
-                    delivery.BeginServiceTime = delivery.LoadingBeginTime + 10 +
-                                delivery.LoadingPlaceInfos[0].TripDuration;
+                    delivery.LoadingBeginTime = (delivery.ServiceTime) -
+                        cheapestLoadingPlace.TripDuration - 10;
+                    delivery.BeginServiceTime = delivery.ServiceTime;
                     delivery.EndServiceTime = (int)(delivery.BeginServiceTime +
                         (delivery.Volume * delivery.CustomerFlowRate));
                     delivery.ArrivaTimeAtPlant = delivery.EndServiceTime +
-                        delivery.LoadingPlaceInfos[0].TripDuration;
-                    delivery.WaitingTimeBeforeLoading = delivery.LoadingBeginTime - route.NextAvailableTime;
-                    delivery.Delay = delivery.BeginServiceTime.Value - delivery.ServiceTime;
-                    route.Deliveries.Add(delivery);
-                    copyDeliveriesToBeReallocated.RemoveAll(d => d.DeliveryId == delivery.DeliveryId);
+                        cheapestLoadingPlace.TripDuration;
                 }
-            }
-            return copyDeliveriesToBeReallocated;
-        }
-        private static int GetRandomRoute(List<Route> routes, int numberOfTrucksUsed)
-        {
-            int smallestNumberOfTripsPerRoute = routes.Select(r => r.NumberOfCustomersInRoute).Min();
-            Random r = new Random();
-            int firstRoute = r.Next(0, numberOfTrucksUsed);
-            while (true)
-            {
-                if (routes[firstRoute].NumberOfCustomersInRoute == smallestNumberOfTripsPerRoute)
-                    break;
-                firstRoute = r.Next(0, numberOfTrucksUsed);
-            }
-            return firstRoute;
-        }
-        private static int GetRandomRouteDifferentFromAnotherRoute(int numberOfTrucksUsed, int firstRoute)
-        {
-            Random r = new Random();
+                else if (route.NextAvailableTime.HasValue &&
+                    (route.NextAvailableTime <= (maximalDeliveryLoadingTime - 15)))
+                {
+                    delivery.LoadingBeginTime = (delivery.ServiceTime) -
+                        cheapestLoadingPlace.TripDuration - 10;
+                    delivery.BeginServiceTime = delivery.ServiceTime;
+                    delivery.EndServiceTime = (int)(delivery.BeginServiceTime +
+                        (delivery.Volume * delivery.CustomerFlowRate));
+                    delivery.ArrivaTimeAtPlant = delivery.EndServiceTime +
+                        cheapestLoadingPlace.TripDuration;
+                    delivery.WaitingTimeBeforeLoading = delivery.LoadingBeginTime - route.NextAvailableTime;
+                }
+                else if (route.NextAvailableTime.HasValue &&
+                    (route.NextAvailableTime <= maximalDeliveryLoadingTime))
+                {
 
-            int secondRoute = firstRoute;
-            while(secondRoute == firstRoute)
-                secondRoute = r.Next(0, numberOfTrucksUsed);
-            return secondRoute;
+                    delivery.LoadingBeginTime = (delivery.ServiceTime) -
+                        cheapestLoadingPlace.TripDuration - 10 +
+                        (route.NextAvailableTime - (maximalDeliveryLoadingTime - 15));
+                    delivery.BeginServiceTime = delivery.LoadingBeginTime +
+                        cheapestLoadingPlace.TripDuration + 10;
+                    delivery.EndServiceTime = (int)(delivery.BeginServiceTime +
+                        (delivery.Volume * delivery.CustomerFlowRate));
+                    delivery.ArrivaTimeAtPlant = delivery.EndServiceTime +
+                        cheapestLoadingPlace.TripDuration;
+                    delivery.WaitingTimeBeforeLoading = delivery.LoadingBeginTime - route.NextAvailableTime;
+                }
+                delivery.Delay = delivery.BeginServiceTime.Value - delivery.ServiceTime;
+                route.NextAvailableTime = delivery.ArrivaTimeAtPlant;
+                route.NumberOfCustomersInRoute++;
+                route.TotalCost += cheapestLoadingPlace.Cost;
+                route.Deliveries.Add(Heuristics.Extensions.ObjectExtensions.DeepClone<Delivery>(delivery));
+            }
+            return routes;
         }
-        private static int GetRandomTripOfRoute(List<Route> routes, int indexOfRoute)
+        private Route CreateNewRoute(LoadingPlaceInfo cheapestLoadingPlace)
         {
-            Random r = new Random();
-            int tripOfFirstRoute = r.Next(0, routes[indexOfRoute].Deliveries.Count);
-            return tripOfFirstRoute;
+            Route route = new Route();
+            route.Deliveries = new List<Delivery>();
+            route.LoadingPlaceId = cheapestLoadingPlace.LoadingPlaceId;
+            route.CodLoadingPlace = cheapestLoadingPlace.CodLoadingPlace;
+            route.RouteString = $"Base [{route.LoadingPlaceId}]";
+            return route;
         }
     }
     [Serializable]
