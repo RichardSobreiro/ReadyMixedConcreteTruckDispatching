@@ -2,7 +2,7 @@
   "profiles": {
     "Heuristics": {
       "commandName": "Project",
-      "commandLineArgs": "\"RJ-13-06-2019\\\\\" \"C:\\\\Users\\\\Richard Sobreiro\\\\Google Drive\\\\Mestrado\\\\Dados\\\\\" 0.5 1000"
+      "commandLineArgs": "\"C:\\\\Users\\\\Richard Sobreiro\\\\Google Drive\\\\Mestrado\\\\Dados\\\\SP-20-01-2020\\\\BianchessiReal.dat\" 0.5 1000 0.6 20000"
     }
   }
 }
