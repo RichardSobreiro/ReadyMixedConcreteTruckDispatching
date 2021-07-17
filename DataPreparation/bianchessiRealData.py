@@ -1,11 +1,13 @@
 import sys
 import pandas as pd
 import numpy as np
+from numpy import *
 import haversine as hs
 from datetime import datetime, timedelta
 import googlemaps
 import json
 import random
+import os
 
 from classes import LoadingPlace, MixerTruck, Order, Delivery, DirectionResult
 
@@ -45,7 +47,6 @@ def bianchessiRealData(basePath, mixerTrucks, loadingPlaces, deliveries, orders,
 
     with open(basePath + '\\DirectionsResultsStored.json') as infile:
         directionsResultsStored = json.load(infile)
-    
     directionsResults = convert_dictionary_directions_results_to_array(directionsResultsStored)
     for order in orders:
         for loadingPlace in loadingPlaces:
@@ -121,11 +122,14 @@ def bianchessiRealData(basePath, mixerTrucks, loadingPlaces, deliveries, orders,
     c = np.zeros((P, N, N, N))
     t = np.zeros((P, N, N, N))
     s = np.zeros((N))
+    a = np.zeros((N))
+    b = np.zeros((N))
     cfr = np.zeros((N))
 
     codLoadingPlants = np.zeros((P))
     codOrders = np.zeros((N))
     codDeliveries = np.zeros((N))
+    codMixerTrucks = np.zeros((len(mixerTrucks)))
 
     vold = np.zeros((N))
 
@@ -137,11 +141,15 @@ def bianchessiRealData(basePath, mixerTrucks, loadingPlaces, deliveries, orders,
             loadingPlaceInfo = next((lpo for lpo in order.LOADINGPLACES_INFO if lp.CODCENTCUS == lpo.CODCENTCUS), None)
             for dl in order.TRIPS:
                 s[i] = dl.HORCHEGADAOBRA
-                # a[j] = dl.HORCHEGADAOBRA
-                # b[j] = dl.HORCHEGADAOBRA + 15
+                a[i] = dl.HORCHEGADAOBRA
+                b[i] = dl.HORCHEGADAOBRA + 15
+                if isnan(loadingPlaceInfo.TRAVELTIME):
+                    loadingPlaceInfo.TRAVELTIME = 10000
                 tt[p][i] = loadingPlaceInfo.TRAVELTIME
                 distance = loadingPlaceInfo.DISTANCE
                 cost = (dl.CUSVAR * dl.VALVOLUMEPROG) + (distance * FIXED_L_PER_KM * DEFAULT_DIESEL_COST * 2)
+                if isnan(cost):
+                    cost = 350
                 cc[p][i] = cost
                 codOrders[i] = dl.CODPROGRAMACAO
                 codDeliveries[i] = dl.CODPROGVIAGEM
@@ -150,62 +158,8 @@ def bianchessiRealData(basePath, mixerTrucks, loadingPlaces, deliveries, orders,
                 i += 1
         p += 1
 
-    # p = 0
-    # while p < P:
-    #     i = 0
-    #     while i < N:
-    #         j = 0
-    #         while j < N:
-    #             k = 0
-    #             while k < N:
-    #                 if i == j and j == k:
-    #                     t[p][i][j][k] = int((2 * tt[p][i]) + (cfr[i] * vold[i]) + 10)
-    #                 else:
-    #                     if (i == j and j != k) or (i != j and j == k):
-    #                         t[p][i][j][k] = int(2 * (tt[p,i] + tt[p,k]) + (cfr[i] * vold[i]) + (cfr[k] * vold[k]) + 20)
-    #                     else:
-    #                         t[p][i][j][k] = int((2 * tt[p,i]) + (2 * tt[p,j]) + (2 * tt[p,k]) + (cfr[i] * vold[i]) + (cfr[j] * vold[j]) + (cfr[k] * vold[k]) + 30)
-    #                 k += 1
-    #             j += 1
-    #         i += 1
-    #     p += 1
-
-    # p = 0
-    # while p < P:
-    #     i = 0
-    #     while i < N:
-    #         j = 0
-    #         while j < N:
-    #             k = 0
-    #             while k < N:
-    #                 if i == j and j == k:
-    #                     c[p][i][j][k] = cc[p][i]
-    #                 else:
-    #                     if(i == j and j != k):
-    #                         c[p][i][j][k] = cc[p][i] + cc[p][k]
-    #                         # if(s[i] + (cfr[i] * 8) + tt[p][i]) <= (s[k] - tt[p][k] - 10):
-    #                         #     c[p][i][j][k] = cc[p][i] + cc[p][k]
-    #                         # else:
-    #                         #     c[p][i][j][k] = 100000
-    #                         #     #t[p][i][j][k] = 100000
-    #                     elif (i != j and j == k):
-    #                         c[p][i][j][k] = cc[p][i] + cc[p][j]
-    #                         # if(s[i] + (cfr[i] * 8) + tt[p][i]) <= (s[j] - tt[p][j] - 10):
-    #                         #     c[p][i][j][k] = cc[p][i] + cc[p][j]
-    #                         # else:
-    #                         #     c[p][i][j][k] = 100000
-    #                         #     #t[p][i][j][k] = 100000
-    #                     else:
-    #                         c[p][i][j][k] = cc[p][i] + cc[p][j] + cc[p][k]
-    #                         # if ((s[i] + (cfr[i] * 8) + tt[p][i]) <= (s[j] - 10 - tt[p][j])) and ((s[j] + (cfr[j] * 8) + tt[p][j]) <= (s[k] - 10 - tt[p][k])):
-    #                         #     c[p][i][j][k] = cc[p][i] + cc[p][j] + cc[p][k]
-    #                         # else:
-    #                         #     c[p][i][j][k] = 100000
-    #                         #     #t[p][i][j][k] =  100000
-    #                 k += 1
-    #             j += 1
-    #         i += 1
-    #     p += 1
+    for k in range(len(mixerTrucks)):
+        codMixerTrucks[k] = mixerTrucks[k].CODVEICULO
 
     datfile = open(basePath + '\\BianchessiReal.dat', 'w+')
 
@@ -295,81 +249,119 @@ def bianchessiRealData(basePath, mixerTrucks, loadingPlaces, deliveries, orders,
     scfr += '];\n'
     datfile.write(scfr)
 
-    # datfile.write('c = ')
-    # p = 0
-    # i = 0
-    # j = 0
-    # k = 0
-    # #strCLine = '[\n'
-    # while p < P:
-    #     i = 0
-    #     strCLine = '[\n[\n'
-    #     while i < N:
-    #         j = 0
-    #         strCLine += '[\n'
-    #         while j < N:
-    #             k = 0
-    #             strCLine += '['
-    #             while k < N:
-    #                 if k == 0:
-    #                     strCLine += (str(c[p][i][j][k]))
-    #                 else:
-    #                     strCLine += (', ' + str(c[p][i][j][k]))
-    #                 k += 1
-    #             if j == (N - 1):
-    #                 strCLine += ']\n'
-    #             else:
-    #                 strCLine += '],\n'
-    #             j += 1
-    #         if i == (N - 1):
-    #             strCLine += ']\n'
-    #         else:
-    #             strCLine += '],\n'
-    #         i += 1
-    #     if p == (P - 1):
-    #         strCLine += ']\n'
-    #     else:
-    #         strCLine += '],\n'
-    #     datfile.write(strCLine)
-    #     p += 1
-    # #datfile.write(strCLine)
-    # datfile.write('];\n')
+    #region CANTU-FUNES DATA
+    nN = len(loadingPlaces) + len(deliveries)
+    nA = len(loadingPlaces) + len(deliveries)
+    nI = len(loadingPlaces)
+    nJ = len(deliveries)
+    nK = len(mixerTrucks)
+    nL = 8
 
-    # datfile.write('t = ')
-    # p = 0
-    # i = 0
-    # j = 0
-    # k = 0
-    # strCLine = '[\n'
-    # while p < P:
-    #     i = 0
-    #     strCLine += '[\n'
-    #     while i < N:
-    #         j = 0
-    #         strCLine += '[\n'
-    #         while j < N:
-    #             k = 0
-    #             strCLine += '['
-    #             while k < N:
-    #                 if k == 0:
-    #                     strCLine += (str(t[p][i][j][k]))
-    #                 else:
-    #                     strCLine += (', ' + str(t[p][i][j][k]))
-    #                 k += 1
-    #             if j == (N - 1):
-    #                 strCLine += ']\n'
-    #             else:
-    #                 strCLine += '],\n'
-    #             j += 1
-    #         if i == (N - 1):
-    #             strCLine += ']\n'
-    #         else:
-    #             strCLine += '],\n'
-    #         i += 1
-    #     if p == (P - 1):
-    #         strCLine += ']\n'
-    #     else:
-    #         strCLine += '],\n'
-    #     p += 1
-    # datfile.write(strCLine)
-    # datfile.write('];\n')
+    datfile = open(basePath + '\\CantuFunes.dat', 'w+')
+
+    datfile.write('nN = ' + str(nN) + ';\n')
+    datfile.write('nA = ' + str(nA) + ';\n')
+    datfile.write('nI = ' + str(nI) + ';\n')
+    datfile.write('nJ = ' + str(nJ) + ';\n')
+    datfile.write('nK = ' + str(nK) + ';\n')
+    datfile.write('nL = ' + str(nL) + ';\n')
+
+    i = 1
+    strcodLoadingPlants = 'codLoadingPlants = [' + str(int(codLoadingPlants[0]))
+    while i < (nI):
+        strcodLoadingPlants += ', ' + str(int(codLoadingPlants[i]))
+        i += 1
+    strcodLoadingPlants += '];\n'
+    datfile.write(strcodLoadingPlants)
+
+    i = 1
+    strcodMixerTrucks = 'codMixerTrucks = [' + str(int(codMixerTrucks[0]))
+    while i < (nK):
+        strcodMixerTrucks += ', ' + str(int(codMixerTrucks[i]))
+        i += 1
+    strcodMixerTrucks += '];\n'
+    datfile.write(strcodMixerTrucks)
+
+    i = 1
+    strcodOrders = 'codOrders = [' + str(int(codOrders[0]))
+    while i < (nJ):
+        strcodOrders += ', ' + str(int(codOrders[i]))
+        i += 1
+    strcodOrders += '];\n'
+    datfile.write(strcodOrders)
+
+    i = 1
+    strcodDeliveries = 'codDeliveries = [' + str(int(codDeliveries[0]))
+    while i < (nJ):
+        strcodDeliveries += ', ' + str(int(codDeliveries[i]))
+        i += 1
+    strcodDeliveries += '];\n'
+    datfile.write(strcodDeliveries)
+
+    i = 1
+    stra = 'a = [' + str(int(a[0]))
+    while i < (nJ):
+        stra += ', ' + str(int(a[i]))
+        i += 1
+    stra += '];\n'
+    datfile.write(stra)
+    
+    i = 1
+    strb = 'b = [' + str(int(b[0]))
+    while i < (nJ):
+        strb += ', ' + str(int(b[i]))
+        i += 1
+    strb += '];\n'
+    datfile.write(strb)
+
+    datfile.write('c = [\n')
+    i = 0
+    while i < nI:
+        strCLine = ''
+        strCLine = '[' + str(int(cc[i][0]))
+        j = 1
+        while j < nJ:
+            strCLine += (', ' + str(int(cc[i][j])))
+            j += 1
+        if i == (nI - 1):
+            strCLine += ']\n'
+        else:
+            strCLine += '],\n'
+        datfile.write(strCLine)
+        i += 1
+    datfile.write('];\n')
+
+    datfile.write('t = [\n')
+    i = 0
+    while i < nI:
+        strTLine = ''
+        strTLine = '[' + str(int(tt[i][0]))
+        j = 1
+        while j < nJ:
+            strTLine += (', ' + str(int(tt[i][j])))
+            j += 1
+        if i == (nI - 1):
+            strTLine += ']\n'
+        else:
+            strTLine += '],\n'
+        datfile.write(strTLine)
+        i += 1
+    datfile.write('];\n')
+
+    i = 1
+    scfr = 'cfr = [' + str(int(cfr[0]))
+    while i < (nJ):
+        scfr += ', ' + str(int(cfr[i]))
+        i += 1
+    scfr += '];\n'
+    datfile.write(scfr)
+
+    i = 1
+    svold = 'vold = [' + str(int(vold[0]))
+    while i < (nJ):
+        svold += ', ' + str(int(vold[i]))
+        i += 1
+    svold += '];\n'
+    datfile.write(svold)
+
+    #endregion

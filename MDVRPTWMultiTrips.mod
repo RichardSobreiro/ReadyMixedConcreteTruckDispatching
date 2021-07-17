@@ -10,7 +10,6 @@ range J = 1..nJ;
 range K = 1..nK;
 range L = 1..nL;
 
-int revenues[J] = ...;
 int codLoadingPlants[I] = ...; 
 int codMixerTrucks[K] = ...;  
 int codOrders[J] = ...;
@@ -97,7 +96,6 @@ tuple Node
 	key float ReturnTime;
 	int OrderId;
 	int LoadingPlant;
-	float Revenue;
 	float BeginTimeWindow;
 	float EndTimeWindow;
 	float TravelTime;
@@ -131,7 +129,6 @@ execute {
 						var ReturnTime = s[k][l] + ld + t[i][j] + (vold[j]*cfr[j]) + t[i][j];
 						var OrderId = j;
 						var LoadingPlant = codLoadingPlants[i];
-						var Revenue = revenues[j];
 						var BeginTimeWindow = a[j];
 						var EndTimeWindow = b[j];
 						var TravelTime = t[i][j];
@@ -159,7 +156,6 @@ execute {
 		writeln("LoadingBeginTime: ", node.LoadingBeginTime);	
 		writeln("ServiceTime: ", node.ServiceTime);	
 		writeln("ReturnTime: ", node.ReturnTime);
-		writeln("Revenue: ", node.Revenue);
 		writeln("BeginTimeWindow: ", node.BeginTimeWindow);
 		writeln("EndTimeWindow: ", node.EndTimeWindow);
 		writeln("TravelTime: ", node.TravelTime);
@@ -186,8 +182,7 @@ execute {
 		f.writeln("		\"LoadingBeginTime\": ", viagem.LoadingBeginTime, ",");
 		f.writeln("		\"ServiceTime\": ", viagem.ServiceTime, ",");
 		f.writeln(" 	\"ReturnTime\": ", viagem.ReturnTime, ",");
-		f.writeln(" 	\"LoadingPlant\": ", viagem.LoadingPlant, ",");
-		f.writeln(" 	\"Revenue\": ", viagem.Revenue, ",");	
+		f.writeln(" 	\"LoadingPlant\": ", viagem.LoadingPlant, ",");	
 		f.writeln(" 	\"BeginTimeWindow\": ", viagem.BeginTimeWindow, ",");
 		f.writeln(" 	\"EndTimeWindow\": ", viagem.EndTimeWindow, ",");
 		f.writeln(" 	\"TravelTime\": ", viagem.TravelTime, ",");

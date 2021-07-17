@@ -13,13 +13,11 @@ namespace Heuristics.ConstructiveHeuristics.IteratedLocalSearch.DepotStart
     {
         private readonly double PROBABILITY;
         private readonly int MAX_K;
-
         private readonly int MAX_ILS_ITERATIONS;
-
         private readonly double PROBABILITY_CHANGE_LP;
         private readonly double CHANGE_ORDER_LP_PERCENTANGE;
-        public UndoRoutesAndDepotStart(double probability, int _MAX_K, int _MAX_ILS_ITERATIONS,
-            double _PROBABILITY_CHANGE_LP, double _CHANGE_ORDER_LP_PERCENTANGE)
+        public UndoRoutesAndDepotStart(double probability, int _MAX_K, double _PROBABILITY_CHANGE_LP,
+            int _MAX_ILS_ITERATIONS, double _CHANGE_ORDER_LP_PERCENTANGE)
         {
             PROBABILITY = probability;
             MAX_K = _MAX_K;

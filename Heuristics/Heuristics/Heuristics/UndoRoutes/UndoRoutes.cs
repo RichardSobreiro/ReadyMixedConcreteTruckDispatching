@@ -7,23 +7,21 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace Heuristics.ConstructiveHeuristics.IteratedLocalSearch.UndoOnlySomeRoutes
+namespace Heuristics.ConstructiveHeuristics.StochasticAlgorithms
 {
     public class UndoRoutes
     {
         private readonly double PROBABILITY;
-        private readonly int MAX_K;
-        private readonly int MAX_ILS_ITERATIONS;
-        private readonly double UNDO_PERCENTANGE;
-        private readonly int MAX_LOCAL_SEARCH_ITERATIONS;
-        public UndoRoutes(double probability, int maxK, int _MAX_ILS_ITERATIONS,
-            double _UNDO_PERCENTANGE, int _MAX_LOCAL_SEARCH_ITERATIONS)
+        private readonly int MAX_K_STOCHASTIC_ROUTE_ACCEPTANCE;
+        private readonly double PERCENTAGE_OF_ROUTES_TO_UNDO;
+        private readonly int MAX_K_UNDO_ROUTES;
+        public UndoRoutes(double _PROBABILITY, int _MAX_K_STOCHASTIC_ROUTE_ACCEPTANCE, 
+            double _PERCENTAGE_OF_ROUTES_TO_UNDO, int _MAX_K_UNDO_ROUTES)
         {
-            PROBABILITY = probability;
-            MAX_K = maxK;
-            MAX_ILS_ITERATIONS = _MAX_ILS_ITERATIONS;
-            UNDO_PERCENTANGE = _UNDO_PERCENTANGE;
-            MAX_LOCAL_SEARCH_ITERATIONS = _MAX_LOCAL_SEARCH_ITERATIONS;
+            PROBABILITY = _PROBABILITY;
+            MAX_K_STOCHASTIC_ROUTE_ACCEPTANCE = _MAX_K_STOCHASTIC_ROUTE_ACCEPTANCE;
+            PERCENTAGE_OF_ROUTES_TO_UNDO = _PERCENTAGE_OF_ROUTES_TO_UNDO;
+            MAX_K_UNDO_ROUTES = _MAX_K_UNDO_ROUTES;
         }
         public string Execute(string folderPath)
         {
@@ -343,19 +341,35 @@ namespace Heuristics.ConstructiveHeuristics.IteratedLocalSearch.UndoOnlySomeRout
             {
                 totalCost += route.TotalCost;
                 route.MixerTruck = trucksRouteCount;
+                //Console.WriteLine($"Truck Route [{trucksRouteCount}] : " + route.RouteString);
                 trucksRouteCount++;
             }
             totalCost = (routes.Count * 50) + totalCost;
+            //Console.WriteLine($"\n\nTotal Cost = {totalCost}");
 
-            #region Local Search: Per Loading Place
+            //stopwatch.Stop();
+            //TimeSpan stopwatchElapsed = stopwatch.Elapsed;
+            //Console.WriteLine($"\n\nTotal Elapsed Time: {Convert.ToInt32(stopwatchElapsed.TotalSeconds)}\n\n");
+
+            //WriteResults(routes, folderPath, $"\\DELIVERY_BY_DELIVERY_ACCEPTANCE", totalCost);
+
+            //Stopwatch stopwatchStochasticRoute = new Stopwatch();
+            //stopwatchStochasticRoute.Start();
+
             List<int> diferentLoadingPlaces = routes.Select(r => r.LoadingPlaceId).Distinct().ToList();
             List<Route> stochasticRoutes = new List<Route>();
             List<Task<List<Route>>> tasks = new List<Task<List<Route>>>();
 
+            //foreach (int loadingPlaceId in diferentLoadingPlaces)
+            //{
+            //    var routesFromLp = routes.Where(r => r.LoadingPlaceId == loadingPlaceId).ToList();
+            //    stochasticRoutes.AddRange(StochasticRouteCreation(routesFromLp, loadingPlaceId, MAX_K));
+            //}
+
             foreach (int loadingPlaceId in diferentLoadingPlaces)
             {
                 var routesFromLp = routes.Where(r => r.LoadingPlaceId == loadingPlaceId).ToList();
-                tasks.Add(Task.Factory.StartNew(() => StochasticRouteCreation(routesFromLp, loadingPlaceId, MAX_K)));
+                tasks.Add(Task.Factory.StartNew(() => StochasticRouteCreation(routesFromLp, loadingPlaceId)));
             }
 
             var results = Task.WhenAll(tasks);
@@ -371,225 +385,24 @@ namespace Heuristics.ConstructiveHeuristics.IteratedLocalSearch.UndoOnlySomeRout
             {
                 totalCostStochasticRoute += route.TotalCost;
                 route.MixerTruck = trucksRouteCountStochasticRoute;
-                foreach(var delivery in route.Deliveries)
-                {
-                    delivery.LoadingPlaceInfos.Clear();
-                    for (int j = 0; j < np; j++)
-                    {
-                        LoadingPlaceInfo loadingPlaceInfo = new LoadingPlaceInfo();
-                        loadingPlaceInfo.LoadingPlaceId = j;
-                        loadingPlaceInfo.CodLoadingPlace = codLoadingPlants[j];
-                        loadingPlaceInfo.TripDuration = tt[j, delivery.DeliveryId];
-                        loadingPlaceInfo.Cost = cc[j, delivery.DeliveryId];
-                        delivery.LoadingPlaceInfos.Add(loadingPlaceInfo);
-                    }
-                }
+                //Console.WriteLine($"Truck Route [{trucksRouteCountStochasticRoute}] : " + route.RouteString);
                 trucksRouteCountStochasticRoute++;
             }
             totalCostStochasticRoute = (stochasticRoutes.Count * 50) + totalCostStochasticRoute;
-            #endregion
-
-            #region LOOP: Perturbation and Local Search
-            int countILS = 0;
-            while (countILS <= MAX_ILS_ITERATIONS)
-            {
-                List<Route> ilsRoute = PerturbationAndLocalSearch(stochasticRoutes);
-                double totalCostILSRoute = 0;
-                int trucksRouteCountILSRoute = 1;
-                foreach (var route in ilsRoute)
-                {
-                    totalCostILSRoute += route.TotalCost;
-                    route.MixerTruck = trucksRouteCountILSRoute;
-                    trucksRouteCountILSRoute++;
-                }
-                totalCostILSRoute = (ilsRoute.Count * 50) + totalCostILSRoute;
-                if(totalCostILSRoute < totalCostStochasticRoute)
-                {
-                    stochasticRoutes = ilsRoute;
-                    totalCostStochasticRoute = totalCostILSRoute;
-                }
-                countILS++;
-            }
-            #endregion
+            //Console.WriteLine($"\n\nTotal Cost = {totalCostStochasticRoute}");
 
             stopwatch.Stop();
             TimeSpan stopwatchElapsed = stopwatch.Elapsed;
 
+            //stopwatchStochasticRoute.Stop();
+            //TimeSpan stopwatchElapsedStochasticRoute = stopwatchStochasticRoute.Elapsed;
+            //Console.WriteLine($"\n\nTotal Elapsed Time: {Convert.ToInt32(stopwatchElapsedStochasticRoute.TotalSeconds)}\n\n");
+            //WriteResults(stochasticRoutes, folderPath, $"\\STOCHASTIC_ROUTE_ACCEPTANCE_{PROBABILITY}_{MAX_K}", totalCostStochasticRoute);
+
             return $"{totalCostStochasticRoute} {Convert.ToInt32(stopwatchElapsed.TotalSeconds)}";
+            //return $"{totalCostStochasticRoute}";
         }
-        private List<Route> PerturbationAndLocalSearch(List<Route> routes)
-        {
-            List<int> diferentLoadingPlaces = routes.Select(r => r.LoadingPlaceId).Distinct().ToList();
-            List<Route> stochasticRoutes = new List<Route>();
-            List<Task<List<Route>>> tasks = new List<Task<List<Route>>>();
-
-            foreach (int loadingPlaceId in diferentLoadingPlaces)
-            {
-                var routesFromLp = routes.Where(r => r.LoadingPlaceId == loadingPlaceId).ToList();
-                tasks.Add(Task.Factory.StartNew(() => PertubationForLocalSearch(routesFromLp, loadingPlaceId, MAX_K)));
-            }
-
-            var results = Task.WhenAll(tasks);
-            for (int ctr = 0; ctr <= results.Result.Length - 1; ctr++)
-            {
-                var result = results.Result[ctr];
-                stochasticRoutes.AddRange(result);
-            }
-
-            double totalCostStochasticRoute = 0;
-            int trucksRouteCountStochasticRoute = 1;
-            foreach (var route in stochasticRoutes)
-            {
-                totalCostStochasticRoute += route.TotalCost;
-                route.MixerTruck = trucksRouteCountStochasticRoute;
-                trucksRouteCountStochasticRoute++;
-            }
-            totalCostStochasticRoute = (stochasticRoutes.Count * 50) + totalCostStochasticRoute;
-            return stochasticRoutes;
-        }
-        private List<Route> PertubationForLocalSearch(List<Route> routes, int loadingPlaceId, int numberOfIterations)
-        {
-            List<Delivery> deliveries = new List<Delivery>();
-            int numberOfTrucksUsed = routes.Count();
-            Random random = new Random();
-            int maxUndoRoutes = (int)(routes.Count() * UNDO_PERCENTANGE);
-            int countUndo = 0;
-            List<int> indexesToRemove = new List<int>();
-            int index = 0;
-            foreach (Route route in routes)
-            {
-                double p = random.NextDouble();
-                if(p >= PROBABILITY && countUndo <= maxUndoRoutes)
-                {
-                    List<Delivery> newDeliveries = Heuristics.Extensions.ObjectExtensions.DeepClone<List<Delivery>>(route.Deliveries);
-                    deliveries.AddRange(newDeliveries);
-                    countUndo++;
-                    indexesToRemove.Add(index);
-                }
-                index++;
-            }
-            foreach(int i in indexesToRemove)
-            {
-                routes.RemoveAt(i);
-            }
-            foreach (Delivery delivery in deliveries)
-            {
-                delivery.LoadingPlaceInfos.RemoveAll(lp => lp.LoadingPlaceId != loadingPlaceId);
-            }
-            int newNumberOfTrucksUsed = 0;
-            int k = 0;
-            while (k <= numberOfIterations)
-            {
-                List<Route> newRoutes = PartialStochasticRouteAcceptance(deliveries, routes);
-                newNumberOfTrucksUsed = newRoutes.Count();
-                if (newNumberOfTrucksUsed < numberOfTrucksUsed)
-                {
-                    routes = newRoutes;
-                    numberOfTrucksUsed = newNumberOfTrucksUsed;
-                }
-                k++;
-            }
-            return routes;
-        }
-        private List<Route> PartialStochasticRouteAcceptance(List<Delivery> deliveries, List<Route> routes)
-        {
-            Random random = new Random();
-            double routeAcceptanceProbability = 0;
-            deliveries = deliveries.OrderBy(d => d.ServiceTime).ToList();
-            foreach (Delivery delivery in deliveries)
-            {
-                delivery.LoadingPlaceInfos = delivery.LoadingPlaceInfos.OrderBy(lp => lp.Cost).ToList();
-                var cheapestLoadingPlace = delivery.LoadingPlaceInfos.FirstOrDefault();
-                int maximalDeliveryLoadingTime = (delivery.ServiceTime + 15) -
-                    cheapestLoadingPlace.TripDuration - 10;
-                Route route = routes.FirstOrDefault(r => r.NextAvailableTime <= maximalDeliveryLoadingTime &&
-                        r.LoadingPlaceId == cheapestLoadingPlace.LoadingPlaceId);
-                if (route == null)
-                {
-                    route = CreateNewRoute(cheapestLoadingPlace);
-                    route.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
-                    routes.Add(route);
-                }
-                else
-                {
-                    List<Route> copyRoutes = Heuristics.Extensions.ObjectExtensions.DeepClone<List<Route>>(routes);
-                    while (routeAcceptanceProbability <= PROBABILITY)
-                    {
-                        routeAcceptanceProbability = random.NextDouble();
-                        if (routeAcceptanceProbability > PROBABILITY)
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            if (route != null)
-                                copyRoutes.RemoveAll(r => r.NextAvailableTime == route.NextAvailableTime);
-                            route = copyRoutes.FirstOrDefault(r => r.NextAvailableTime <= maximalDeliveryLoadingTime &&
-                                        r.LoadingPlaceId == cheapestLoadingPlace.LoadingPlaceId);
-                        }
-                    }
-                    if (route == null)
-                    {
-                        route = CreateNewRoute(cheapestLoadingPlace);
-                        route.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
-                        routes.Add(route);
-                    }
-                    else
-                    {
-                        route = routes.FirstOrDefault(r => r.NextAvailableTime == route.NextAvailableTime &&
-                                    r.LoadingPlaceId == cheapestLoadingPlace.LoadingPlaceId);
-                        route.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
-                    }
-                    routeAcceptanceProbability = 0;
-                }
-                delivery.BaseLoadingPlaceId = cheapestLoadingPlace.LoadingPlaceId;
-                delivery.CodLoadingPlace = cheapestLoadingPlace.CodLoadingPlace;
-                if (!route.NextAvailableTime.HasValue)
-                {
-                    delivery.LoadingBeginTime = (delivery.ServiceTime) -
-                        cheapestLoadingPlace.TripDuration - 10;
-                    delivery.BeginServiceTime = delivery.ServiceTime;
-                    delivery.EndServiceTime = (int)(delivery.BeginServiceTime +
-                        (delivery.Volume * delivery.CustomerFlowRate));
-                    delivery.ArrivaTimeAtPlant = delivery.EndServiceTime +
-                        cheapestLoadingPlace.TripDuration;
-                }
-                else if (route.NextAvailableTime.HasValue &&
-                    (route.NextAvailableTime <= (maximalDeliveryLoadingTime - 15)))
-                {
-                    delivery.LoadingBeginTime = (delivery.ServiceTime) -
-                        cheapestLoadingPlace.TripDuration - 10;
-                    delivery.BeginServiceTime = delivery.ServiceTime;
-                    delivery.EndServiceTime = (int)(delivery.BeginServiceTime +
-                        (delivery.Volume * delivery.CustomerFlowRate));
-                    delivery.ArrivaTimeAtPlant = delivery.EndServiceTime +
-                        cheapestLoadingPlace.TripDuration;
-                    delivery.WaitingTimeBeforeLoading = delivery.LoadingBeginTime - route.NextAvailableTime;
-                }
-                else if (route.NextAvailableTime.HasValue &&
-                    (route.NextAvailableTime <= maximalDeliveryLoadingTime))
-                {
-                    delivery.LoadingBeginTime = (delivery.ServiceTime) -
-                        cheapestLoadingPlace.TripDuration - 10 +
-                        (route.NextAvailableTime - (maximalDeliveryLoadingTime - 15));
-                    delivery.BeginServiceTime = delivery.LoadingBeginTime +
-                        cheapestLoadingPlace.TripDuration + 10;
-                    delivery.EndServiceTime = (int)(delivery.BeginServiceTime +
-                        (delivery.Volume * delivery.CustomerFlowRate));
-                    delivery.ArrivaTimeAtPlant = delivery.EndServiceTime +
-                        cheapestLoadingPlace.TripDuration;
-                    delivery.WaitingTimeBeforeLoading = delivery.LoadingBeginTime - route.NextAvailableTime;
-                }
-                delivery.Delay = delivery.BeginServiceTime.Value - delivery.ServiceTime;
-                route.NextAvailableTime = delivery.ArrivaTimeAtPlant;
-                route.NumberOfCustomersInRoute++;
-                route.TotalCost += cheapestLoadingPlace.Cost;
-                route.Deliveries.Add(Heuristics.Extensions.ObjectExtensions.DeepClone<Delivery>(delivery));
-            }
-            return routes;
-        }
-        #region Local Search
-        private List<Route> StochasticRouteCreation(List<Route> routes, int loadingPlaceId, int numberOfIterations)
+        private List<Route> StochasticRouteCreation(List<Route> routes, int loadingPlaceId)
         {
             List<Delivery> deliveries = new List<Delivery>();
             int numberOfTrucksUsed = routes.Count();
@@ -603,9 +416,9 @@ namespace Heuristics.ConstructiveHeuristics.IteratedLocalSearch.UndoOnlySomeRout
             }
             int newNumberOfTrucksUsed = 0;
             int k = 0;
-            while(k <= numberOfIterations)
+            while(k <= MAX_K_STOCHASTIC_ROUTE_ACCEPTANCE)
             {
-                List<Route> newRoutes = StochasticRouteAcceptance(deliveries);
+                List<Route> newRoutes = ExecuteStochasticRouteAcceptance(deliveries);
                 newNumberOfTrucksUsed = newRoutes.Count();
                 if(newNumberOfTrucksUsed < numberOfTrucksUsed)
                 {
@@ -614,14 +427,18 @@ namespace Heuristics.ConstructiveHeuristics.IteratedLocalSearch.UndoOnlySomeRout
                 }
                 k++;
             }
+
+            routes = UndoAmountOfAndSmallestRoutes(routes);
+
             return routes;
         }
-        private List<Route> StochasticRouteAcceptance(List<Delivery> deliveries)
+        private List<Route> ExecuteStochasticRouteAcceptance(List<Delivery> deliveries)
         {
             Random random = new Random();
             double routeAcceptanceProbability = 0;
             deliveries = deliveries.OrderBy(d => d.ServiceTime).ToList();
             List<Route> routes = new List<Route>();
+            int mixerTruck = 1;
             foreach (Delivery delivery in deliveries)
             {
                 delivery.LoadingPlaceInfos = delivery.LoadingPlaceInfos.OrderBy(lp => lp.Cost).ToList();
@@ -629,10 +446,12 @@ namespace Heuristics.ConstructiveHeuristics.IteratedLocalSearch.UndoOnlySomeRout
                 int maximalDeliveryLoadingTime = (delivery.ServiceTime + 15) -
                     cheapestLoadingPlace.TripDuration - 10;
                 Route route = routes.FirstOrDefault(r => r.NextAvailableTime <= maximalDeliveryLoadingTime &&
-                        r.LoadingPlaceId == cheapestLoadingPlace.LoadingPlaceId);
+                    r.LoadingPlaceId == cheapestLoadingPlace.LoadingPlaceId);
                 if (route == null)
                 {
                     route = CreateNewRoute(cheapestLoadingPlace);
+                    route.MixerTruck = mixerTruck;
+                    mixerTruck++;
                     route.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
                     routes.Add(route);
                 }
@@ -657,6 +476,8 @@ namespace Heuristics.ConstructiveHeuristics.IteratedLocalSearch.UndoOnlySomeRout
                     if (route == null)
                     {
                         route = CreateNewRoute(cheapestLoadingPlace);
+                        route.MixerTruck = mixerTruck;
+                        mixerTruck++;
                         route.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
                         routes.Add(route);
                     }
@@ -723,7 +544,161 @@ namespace Heuristics.ConstructiveHeuristics.IteratedLocalSearch.UndoOnlySomeRout
             route.RouteString = $"Base [{route.LoadingPlaceId}]";
             return route;
         }
-        #endregion
+
+        private List<Route> UndoAmountOfAndSmallestRoutes(List<Route> routes)
+        {
+            if (routes.Count() < 2)
+                return routes;
+            
+            int QTD_ROUTES_TO_UNDO = (int)(PERCENTAGE_OF_ROUTES_TO_UNDO * routes.Count());
+
+            Random random = new Random();
+            List<Route> bestRoutesFoundSoFar = Extensions.ObjectExtensions.DeepClone<List<Route>>(routes);
+
+            int countIterations = 0;
+            int smallestRoutes = routes.Min(r => r.NumberOfCustomersInRoute);
+            while (countIterations < MAX_K_UNDO_ROUTES)
+            {
+                int countUndoRoutes = 0;
+                routes = Extensions.ObjectExtensions.DeepClone<List<Route>>(bestRoutesFoundSoFar);
+                List<int> mixerTruckIdsNotUsed = new List<int>();
+                List<Delivery> deliveriesNotServed = new List<Delivery>();
+                smallestRoutes = routes.Min(r => r.NumberOfCustomersInRoute);
+                List<Route> routesToUndo = routes.Where(r => r.NumberOfCustomersInRoute == smallestRoutes).ToList();
+                foreach (Route routeToUndo in routesToUndo)
+                {
+                    if (countUndoRoutes >= QTD_ROUTES_TO_UNDO)
+                        break;
+                    deliveriesNotServed.AddRange(routeToUndo.Deliveries);
+                    mixerTruckIdsNotUsed.Add(routeToUndo.MixerTruck.Value);
+                    routes.RemoveAll(r => r.MixerTruck == routeToUndo.MixerTruck);
+                    countUndoRoutes++;
+                }
+                while (countUndoRoutes <= QTD_ROUTES_TO_UNDO)
+                {
+                    int indexRouteToUndo = random.Next(0, routes.Count());
+                    deliveriesNotServed.AddRange(routes[indexRouteToUndo].Deliveries);
+                    mixerTruckIdsNotUsed.Add(routes[indexRouteToUndo].MixerTruck.Value);
+                    countUndoRoutes += routes[indexRouteToUndo].Deliveries.Count();
+                    routes.RemoveAll(r => r.MixerTruck == routes[indexRouteToUndo].MixerTruck);
+                }
+                routes = ExecuteStochasticRouteAcceptanceWithStartRoutes(deliveriesNotServed, routes, mixerTruckIdsNotUsed);
+                if(routes.Count() < bestRoutesFoundSoFar.Count())
+                {
+                    bestRoutesFoundSoFar = Extensions.ObjectExtensions.DeepClone<List<Route>>(routes);
+                }
+                routes.Clear();
+                countIterations++;
+            }
+            return bestRoutesFoundSoFar;
+        }
+        private List<Route> ExecuteStochasticRouteAcceptanceWithStartRoutes(List<Delivery> deliveries, List<Route> routes,
+            List<int> mixerTruckIdsNotUsed)
+        {
+            Random random = new Random();
+            double routeAcceptanceProbability = 0;
+            int nextMixerTruckId = routes.Count() > 0 ? routes.Max(r => r.MixerTruck.Value) + 1 : 1;
+            deliveries = deliveries.OrderBy(d => d.ServiceTime).ToList();
+            foreach (Delivery delivery in deliveries)
+            {
+                delivery.LoadingPlaceInfos = delivery.LoadingPlaceInfos.OrderBy(lp => lp.Cost).ToList();
+                var cheapestLoadingPlace = delivery.LoadingPlaceInfos.FirstOrDefault();
+                int maximalDeliveryLoadingTime = (delivery.ServiceTime + 15) -
+                    cheapestLoadingPlace.TripDuration - 10;
+                Route route = routes.FirstOrDefault(r => r.NextAvailableTime <= maximalDeliveryLoadingTime &&
+                    r.LoadingPlaceId == cheapestLoadingPlace.LoadingPlaceId);
+                if (route == null)
+                {
+                    route = CreateNewRoute(cheapestLoadingPlace);
+                    nextMixerTruckId = routes.Count() > 0 ? routes.Max(r => r.MixerTruck.Value) + 1 : 1;
+                    route.MixerTruck = mixerTruckIdsNotUsed.Count() > 0 ? mixerTruckIdsNotUsed[0] : nextMixerTruckId;
+                    if(mixerTruckIdsNotUsed.Count() > 0)
+                        mixerTruckIdsNotUsed.RemoveAt(0);
+                    route.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
+                    routes.Add(route);
+                }
+                else
+                {
+                    List<Route> copyRoutes = Heuristics.Extensions.ObjectExtensions.DeepClone<List<Route>>(routes);
+                    while (routeAcceptanceProbability <= PROBABILITY)
+                    {
+                        routeAcceptanceProbability = random.NextDouble();
+                        if (routeAcceptanceProbability > PROBABILITY)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            if (route != null)
+                                copyRoutes.RemoveAll(r => r.NextAvailableTime == route.NextAvailableTime);
+                            route = copyRoutes.FirstOrDefault(r => r.NextAvailableTime <= maximalDeliveryLoadingTime &&
+                                        r.LoadingPlaceId == cheapestLoadingPlace.LoadingPlaceId);
+                        }
+                    }
+                    if (route == null)
+                    {
+                        route = CreateNewRoute(cheapestLoadingPlace);
+                        nextMixerTruckId = routes.Count() > 0 ? routes.Max(r => r.MixerTruck.Value) + 1 : 1;
+                        route.MixerTruck = mixerTruckIdsNotUsed.Count() > 0 ? mixerTruckIdsNotUsed[0] : nextMixerTruckId;
+                        if (mixerTruckIdsNotUsed.Count() > 0)
+                            mixerTruckIdsNotUsed.RemoveAt(0);
+                        route.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
+                        routes.Add(route);
+                    }
+                    else
+                    {
+                        route = routes.FirstOrDefault(r => r.NextAvailableTime == route.NextAvailableTime &&
+                            r.LoadingPlaceId == cheapestLoadingPlace.LoadingPlaceId);
+                        route.RouteString += $" -> Custommer [{delivery.DeliveryId}]";
+                    }
+                    routeAcceptanceProbability = 0;
+                }
+                delivery.BaseLoadingPlaceId = cheapestLoadingPlace.LoadingPlaceId;
+                delivery.CodLoadingPlace = cheapestLoadingPlace.CodLoadingPlace;
+                if (!route.NextAvailableTime.HasValue)
+                {
+                    delivery.LoadingBeginTime = (delivery.ServiceTime) -
+                        cheapestLoadingPlace.TripDuration - 10;
+                    delivery.BeginServiceTime = delivery.ServiceTime;
+                    delivery.EndServiceTime = (int)(delivery.BeginServiceTime +
+                        (delivery.Volume * delivery.CustomerFlowRate));
+                    delivery.ArrivaTimeAtPlant = delivery.EndServiceTime +
+                        cheapestLoadingPlace.TripDuration;
+                }
+                else if (route.NextAvailableTime.HasValue &&
+                    (route.NextAvailableTime <= (maximalDeliveryLoadingTime - 15)))
+                {
+                    delivery.LoadingBeginTime = (delivery.ServiceTime) -
+                        cheapestLoadingPlace.TripDuration - 10;
+                    delivery.BeginServiceTime = delivery.ServiceTime;
+                    delivery.EndServiceTime = (int)(delivery.BeginServiceTime +
+                        (delivery.Volume * delivery.CustomerFlowRate));
+                    delivery.ArrivaTimeAtPlant = delivery.EndServiceTime +
+                        cheapestLoadingPlace.TripDuration;
+                    delivery.WaitingTimeBeforeLoading = delivery.LoadingBeginTime - route.NextAvailableTime;
+                }
+                else if (route.NextAvailableTime.HasValue &&
+                    (route.NextAvailableTime <= maximalDeliveryLoadingTime))
+                {
+                    delivery.LoadingBeginTime = (delivery.ServiceTime) -
+                        cheapestLoadingPlace.TripDuration - 10 +
+                        (route.NextAvailableTime - (maximalDeliveryLoadingTime - 15));
+                    delivery.BeginServiceTime = delivery.LoadingBeginTime +
+                        cheapestLoadingPlace.TripDuration + 10;
+                    delivery.EndServiceTime = (int)(delivery.BeginServiceTime +
+                        (delivery.Volume * delivery.CustomerFlowRate));
+                    delivery.ArrivaTimeAtPlant = delivery.EndServiceTime +
+                        cheapestLoadingPlace.TripDuration;
+                    delivery.WaitingTimeBeforeLoading = delivery.LoadingBeginTime - route.NextAvailableTime;
+                }
+                delivery.Delay = delivery.BeginServiceTime.Value - delivery.ServiceTime;
+                route.NextAvailableTime = delivery.ArrivaTimeAtPlant;
+                route.NumberOfCustomersInRoute++;
+                route.TotalCost += cheapestLoadingPlace.Cost;
+                route.Deliveries.Add(Heuristics.Extensions.ObjectExtensions.DeepClone<Delivery>(delivery));
+            }
+            return routes;
+        }
         static void WriteResults(List<Route> routes, string folderPath, string fileName, double totalCost)
         {
             List<Delivery> deliveryResults = new List<Delivery>();

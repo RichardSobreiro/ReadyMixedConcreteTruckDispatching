@@ -15,7 +15,13 @@ from cplexBianchessiRealResults import cplexBianchessiRealResults
 from cplexBianchessi4RealResults import cplexBianchessi4RealResults
 from stochasticDeliveryAcceptanceResults import stochasticDeliveryAcceptanceResults
 
+from scipy.stats import wilcoxon
+
 def main(argv):
+    d = [58913 ,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913,58913]
+    w, p = wilcoxon(d, zero_method='wilcox', alternative='less', mode='approx')
+    print('w = ' + str(w))
+    print('p = ' + str(p))
     # basePath = 'C:\\RMCDP'
     # googleMapsApiKey = ''
     # cplexBianchessiRandomResults(basePath, dataFolder, googleMapsApiKey)
@@ -28,10 +34,10 @@ def main(argv):
 
     googleMapsApiKey, deliveries, loadingPlaces, mixerTrucks = realResults(dataFolder, basePath, DEFAULT_DIESEL_COST, FIXED_L_PER_KM, FIXED_MIXED_TRUCK_COST)
 
-    filaName = '\\DELIVERY_BY_DELIVERY_ACCEPTANCE'
-    stochasticDeliveryAcceptanceResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces, filaName)
-    filaName = '\\STOCHASTIC_ROUTE_ACCEPTANCE_0.5_1000'
-    stochasticDeliveryAcceptanceResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces, filaName)
+    # filaName = '\\DELIVERY_BY_DELIVERY_ACCEPTANCE'
+    # stochasticDeliveryAcceptanceResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces, filaName)
+    # filaName = '\\STOCHASTIC_ROUTE_ACCEPTANCE_0.5_1000'
+    # stochasticDeliveryAcceptanceResults(basePath, dataFolder, googleMapsApiKey, deliveries, loadingPlaces, filaName)
 
     #cplexBianchessi4RealResults(basePath, dataFolder, 'googleMapsApiKey')
     #cplexBianchessiRealResults(basePath, dataFolder, 'googleMapsApiKey')
