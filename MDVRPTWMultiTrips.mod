@@ -40,35 +40,34 @@ minimize sum(i in I, j in J, k in K, l in L)(c[i][j] * x[i][j][k][l]) + sum(k in
 
 subject to{
 	// 2
-	// 3
-	// 4
 	forall(k in K, l in L: l < nL){
 		s[k][l] + sum(i in I, j in J)(x[i][j][k][l] * ((2 * t[i][j]) + ld + (vold[j] * cfr[j]))) <= s[k][(l+1)];
 	}
-	// 5
+	// 3
 	forall(k in K, l in L){
 		s[k][l] + sum(i in I, j in J)((t[i][j] + ld) * x[i][j][k][l]) >= sum(i in I, j in J)(a[j] * x[i][j][k][l]); 	
 	}
-	// 6
+	// 4
 	forall(k in K, l in L){
 		s[k][l] + sum(i in I, j in J)((t[i][j] + ld) * x[i][j][k][l]) <= sum(i in I, j in J)(b[j] * x[i][j][k][l]); 	
 	}	
-	// 7
+	// 5
 	forall(i in I, j in J, k in K, l in L){
 		x[i][j][k][l] <= u[k][i];	
 	}
-	// 8
+	// 6
 	forall(k in K){
 		sum(i in I)(u[k][i]) == 1;	
 	}
-	// 9
+	// 7
 	forall(k in K, l in L){
 		sum(i in I, j in J)(x[i][j][k][l]) <= 1;	
 	}
-	// ?
+	// 8
 	forall(j in J){
 		sum(i in I, k in K, l in L)(x[i][j][k][l]) == 1;
 	}
+	// 9
 	forall(i in I, j in J, k in K, l in L){
 		x[i][j][k][l] <= mt[k];
 	}
